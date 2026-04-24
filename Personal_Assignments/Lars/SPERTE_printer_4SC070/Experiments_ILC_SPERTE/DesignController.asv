@@ -50,28 +50,29 @@ legend('feedback(1,G*C)','1/(1+G*C)')
 % GS = G * S;
 
 GS = feedback(G, C);
-
-GS_frd = feedback(Gfrd, C);
+GS = minreal(GS);
 
 z = tf('z',Ts);
 [~,Lc,phd] = stable_inv(GS,0,Ts);                                           % Retrieve causal Lc
-L = z^phd*Lc;    
-
-figure;
-bode(GS);
-hold on;
-bode(L);
-% Learning filter L
+L = z^phd*Lc;                                                               % Learning filter L
 
 fN = fs/2;                                                                  % Nyquist frequency
-fC = [50];                                                                    % Cut-off frequency
+fC = [90];                                                                    % Cut-off frequency
 n = [4];                                                                     % Order Q-filter
 
 [Qb,Qa] = butter(n,fC/fN);
-Q = tf(Qb,Qa,Ts);    
+Q_h = tf(Qb,Qa,Ts);    
 
+fC_l = [(150/(2*pi)_];                                                                    % Cut-off frequency
+n_l = [4];                                                                     % Order Q-filter
 
+[Qb,Qa] = butter(n_l,fC_l/fN);
+Q_l = tf(Qb,Qa,Ts);  % Robustness filter
 
+Q = Q_h - Q_l;
+
+figure;
+bode(Q)
 
 % %% Own system analysis 1.a
 % w = Gfrf.freq*2*pi;      % rad/s
@@ -226,8 +227,8 @@ legend('Model Response', '0 dB Limit', 'Location', 'southwest');
 
 %% 3. Robust Convergence Analysis (Comparison Plot)
 % Define the systems
-Conv_no_Q = 1 - (GS_frd * L);
-Conv_with_Q = Q * Conv_no_Q; % Direct multiplication of LTI/FRD objects
+Conv_no_Q = 1 - (Gfrd * S_true * L);
+Conv_with_Q = Q_h * Conv_no_Q; % Direct multiplication of LTI/FRD objects
 
 figure;
 % Plot both systems: 'b:' for dotted blue, 'g' for solid green

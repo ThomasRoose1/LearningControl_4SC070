@@ -22,6 +22,10 @@ load('ILCController.mat'); % design in DesignController.m
 m = 0.0910; %tune mass parameter
 f_jplus1 = m*r.a;
 
+% Define how many samples to clear
+x = 10; 
+e_j(end-x+1:end) = 0;
+
 % learning feedforward
 [e_filt,~,~] = stable_inv(GS,e_j,Ts);
 % f_jplus1 = Q*(f_j+e_filt);
