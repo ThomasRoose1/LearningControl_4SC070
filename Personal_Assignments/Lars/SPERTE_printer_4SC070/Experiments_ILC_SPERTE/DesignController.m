@@ -64,7 +64,7 @@ bode(L);
 % Learning filter L
 
 fN = fs/2;                                                                  % Nyquist frequency
-fC = [50];                                                                    % Cut-off frequency
+fC = [20];                                                                    % Cut-off frequency
 n = [4];                                                                     % Order Q-filter
 
 [Qb,Qa] = butter(n,fC/fN);
@@ -209,7 +209,7 @@ hold on;
 
 % 3. Define the valid frequency range (20 Hz to Nyquist)
 % We avoid 0 Hz due to logarithmic scaling limits
-f_min = 20; 
+f_min = 60; 
 f_max = fs/2;
 w_range = [f_min, f_max] * 2 * pi; % [rad/s]
 
@@ -255,3 +255,142 @@ if save_switch
     save('ILCController','Qb','Qa','GS','Ts');    
     disp('Parameters saved!');
 end
+
+
+
+
+
+% %% Assignment 1h: Learning gain comparison
+% % The learning gain alpha scales the learning filter:
+% %
+% %   L_alpha = alpha * L
+% %
+% % Smaller alpha gives slower but safer learning.
+% % Larger alpha gives faster learning, but can become less robust.
+% 
+% alpha_vec = [0.01, 0.5];
+% % alpha = 1 is the nominal L
+% 
+% % Store nominal learning filter
+% L_nominal = L;
+% 
+% % Store alpha-scaled learning filters
+% L_alpha = cell(length(alpha_vec),1);
+% 
+% for i = 1:length(alpha_vec)
+%     L_alpha{i} = alpha_vec(i) * L_nominal;
+% end
+% 
+% 
+% %% Frequency-domain convergence comparison
+% % Convergence condition:
+% %
+% %   |Q(1 - GS L)| < 1
+% %
+% % or in dB:
+% %
+% %   |Q(1 - GS L)| < 0 dB
+% 
+% figure;
+% hold on;
+% 
+% Conv_nominal = Q * (1 - GS_frd * L_nominal);
+% bodemag(Conv_nominal, 'k', {2*pi*0.1, 2*pi*fs/2});
+% 
+% legend_entries = {'Nominal L'};
+% 
+% for i = 1:length(alpha_vec)
+%     Conv_alpha = Q * (1 - GS_frd * L_alpha{i});
+%     bodemag(Conv_alpha, {2*pi*0.1, 2*pi*fs/2});
+%     legend_entries{end+1} = sprintf('\\alpha = %.2f', alpha_vec(i));
+% end
+% 
+% % 0 dB stability limit
+% f_min = 0.1;
+% f_max = fs/2;
+% w_range = [f_min f_max] * 2*pi;
+% line(w_range, [0 0], 'Color', 'r', 'LineStyle', '--', 'LineWidth', 1.5);
+% legend_entries{end+1} = '0 dB limit';
+% 
+% grid on;
+% xlim(w_range);
+% title('Learning Gain Comparison: |Q(1 - GSL)|');
+% legend(legend_entries, 'Location', 'best');
+% 
+% 
+% 
+% %% Iteration-domain convergence comparison
+% % Simulate:
+% %
+% %   e_{j+1} = Q(1 - GS L) e_j
+% %
+% % This shows how the error norm changes over learning iterations.
+% 
+% N_iter = 30;                      % number of learning iterations
+% t = (0:N-1)' * Ts;                % time vector
+% 
+% % Define an initial error signal.
+% % Replace this by your real initial error if you have one.
+% %
+% % Example:
+% % e0 = reference - measured_output_iteration_0;
+% %
+% % For now, use a smooth test error signal:
+% e0 = sin(2*pi*2*t) + 0.5*sin(2*pi*10*t);
+% 
+% % Pre-allocate
+% err_norm_nominal = zeros(N_iter+1,1);
+% err_norm_alpha = zeros(N_iter+1,length(alpha_vec));
+% 
+% % Initial error norm
+% err_norm_nominal(1) = norm(e0,2);
+% 
+% for i = 1:length(alpha_vec)
+%     err_norm_alpha(1,i) = norm(e0,2);
+% end
+% 
+% %% Nominal L case
+% e = e0;
+% 
+% Conv_nominal_model = Q * (1 - GS * L_nominal);
+% 
+% for j = 1:N_iter
+%     e = lsim(Conv_nominal_model, e, t);
+%     err_norm_nominal(j+1) = norm(e,2);
+% end
+% 
+% %% Alpha-scaled L cases
+% for i = 1:length(alpha_vec)
+% 
+%     e = e0;
+% 
+%     Conv_alpha_model = Q * (1 - GS * L_alpha{i});
+% 
+%     for j = 1:N_iter
+%         e = lsim(Conv_alpha_model, e, t);
+%         err_norm_alpha(j+1,i) = norm(e,2);
+%     end
+% end
+% 
+% %% Plot 2-norm of error versus iteration
+% figure;
+% hold on;
+% 
+% plot(0:N_iter, err_norm_nominal, 'k', 'LineWidth', 1.8);
+% 
+% for i = 1:length(alpha_vec)
+%     plot(0:N_iter, err_norm_alpha(:,i), 'LineWidth', 1.5);
+% end
+% 
+% grid on;
+% xlabel('Iteration number j');
+% ylabel('||e_j||_2');
+% title('ILC Convergence: Error 2-Norm Versus Iteration');
+% 
+% legend_entries = {'Nominal L'};
+% 
+% for i = 1:length(alpha_vec)
+%     legend_entries{end+1} = sprintf('\\alpha = %.2f', alpha_vec(i));
+% end
+% 
+% legend(legend_entries, 'Location', 'northeast');
