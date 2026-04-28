@@ -19,7 +19,7 @@ load('ILCController.mat'); % design in DesignController.m
 % Calculate feedforward.
 
 % mass feedforward for exercise 1.c
-m = 0.2; %tune mass parameter
+m = 0.0; %tune mass parameter
 f_jplus1 = m*r.a;
 
 % Define how many samples to clear
