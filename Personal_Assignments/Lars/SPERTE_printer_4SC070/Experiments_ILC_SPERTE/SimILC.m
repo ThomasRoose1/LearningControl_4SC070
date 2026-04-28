@@ -4,7 +4,7 @@ close all; clc;
 Ts = 1/1000;
 
 % Number of trials.
-N_trial = 2;
+N_trial = 10;
 
 % Load trajectory.
 load('trajectory.mat');

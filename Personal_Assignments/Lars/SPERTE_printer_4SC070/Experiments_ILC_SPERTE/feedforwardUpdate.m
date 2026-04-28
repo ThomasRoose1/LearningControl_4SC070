@@ -19,22 +19,22 @@ load('ILCController.mat'); % design in DesignController.m
 % Calculate feedforward.
 
 % mass feedforward for exercise 1.c
-m = 0.2; %tune mass parameter
-f_jplus1 = m*r.a;
+% m = 0.0910; %tune mass parameter
+% f_jplus1 = m*r.a;
 
 % Define how many samples to clear
-x = 1000; 
+x = 100; 
 e_j(end-x+1:end) = 0;
 
-xu = 500;
+xu = 250;
 u_j(end-xu+1:end) = 0;
 
-% % learning feedforward
-% alpha = 0.5;
-% [e_filt,~,~] = stable_inv(GS,e_j,Ts);
-% % f_jplus1 = Q*(f_j+alpha*e_filt);
-% f_jplus1 = filtfilt(Qb,Qa,f_j+alpha*e_filt);                                        % f_jplus1 = Q(f_j + L*e_j)
-% 
-% 
-% % Make sure the feedforward is a column.
-% f_jplus1 = f_jplus1(:);
+% learning feedforward
+alpha = 0.5;
+[e_filt,~,~] = stable_inv(GS,e_j,Ts);
+% f_jplus1 = Q*(f_j+alpha*e_filt);
+f_jplus1 = filtfilt(Qb,Qa,f_j+alpha*e_filt);                                        % f_jplus1 = Q(f_j + L*e_j)
+
+
+% Make sure the feedforward is a column.
+f_jplus1 = f_jplus1(:);
