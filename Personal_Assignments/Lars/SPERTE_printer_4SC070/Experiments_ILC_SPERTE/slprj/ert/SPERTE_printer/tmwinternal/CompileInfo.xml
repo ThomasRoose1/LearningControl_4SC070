@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MF0 version="1.1" packageUris="http://schema.mathworks.com/mf0/ci/19700101 http://schema.mathworks.com/mf0/sl_modelref_info/R2025a http://schema.mathworks.com/mf0/slexec_mm_sto/R2025a_202404151030 http://schema.mathworks.com/mf0/sltp_mm/R2025a_202406271200">
+<<<<<<< Updated upstream
   <ModelRefInfoRepo.ModelRefInfoRoot type="ModelRefInfoRepo.ModelRefInfoRoot" uuid="12db98a9-8cbd-4004-9abe-263f083ce1fa">
     <JITEngines>sLahlfhPOdcHjXZy1HIXxZE</JITEngines>
     <JITEngines>sbpYbyfPdgf1kruSb4KfgtF</JITEngines>
@@ -8,6 +9,16 @@
       <modelPath>SPERTE_printer</modelPath>
     </childModelRefInfo>
     <clockResolutions type="ModelRefInfoRepo.ClockResolutionInfo" uuid="5fa7fc70-237e-4c99-8936-2917f1705054">
+=======
+  <ModelRefInfoRepo.ModelRefInfoRoot type="ModelRefInfoRepo.ModelRefInfoRoot" uuid="2196ba1a-e9a9-42fd-a272-aa4864f41991">
+    <JITEngines>sLahlfhPOdcHjXZy1HIXxZE</JITEngines>
+    <JITEngines>sbpYbyfPdgf1kruSb4KfgtF</JITEngines>
+    <childModelRefInfo type="ModelRefInfoRepo.ChildModelRefInfo" uuid="391ed685-b215-4266-81ab-c18136cd3440">
+      <modelName>SPERTE_printer</modelName>
+      <modelPath>SPERTE_printer</modelPath>
+    </childModelRefInfo>
+    <clockResolutions type="ModelRefInfoRepo.ClockResolutionInfo" uuid="5338dfcf-0c65-462d-b615-aada1c5f4d1d">
+>>>>>>> Stashed changes
       <rateIdx>1</rateIdx>
       <resolution>.001</resolution>
       <source>DeducedFromSampleTime</source>
@@ -15,8 +26,13 @@
     <compDerivCacheNeedsReset>false</compDerivCacheNeedsReset>
     <compZcCacheNeedsReset>false</compZcCacheNeedsReset>
     <compiledTFinal>inf</compiledTFinal>
+<<<<<<< Updated upstream
     <dataSourceInfo type="ModelRefInfoRepo.DataSourceInfo" uuid="3ff2d3bb-336e-42c9-9d85-5f9d6484168d">
       <dataSources type="ModelRefInfoRepo.SourceInfo" uuid="587d13a2-2af1-447f-8539-6cb70f081be9">
+=======
+    <dataSourceInfo type="ModelRefInfoRepo.DataSourceInfo" uuid="d9a99058-e481-4570-867b-126390e34944">
+      <dataSources type="ModelRefInfoRepo.SourceInfo" uuid="c88dc501-01f9-4a58-8615-5bc9dffadaa3">
+>>>>>>> Stashed changes
         <includeAllSections>true</includeAllSections>
         <sourceName>base workspace</sourceName>
         <type>BaseWorkspace</type>
@@ -62,7 +78,11 @@
     </runtimeNonFcnCallRateInfos>
     <sampleTimeInheritanceRule>2</sampleTimeInheritanceRule>
     <solverStatusFlags>323</solverStatusFlags>
+<<<<<<< Updated upstream
     <standaloneEnumInfos type="ModelRefInfoRepo.StandaloneEnumInfo" uuid="eea8fe35-21c3-4f33-8aa6-a9409058fdd4">
+=======
+    <standaloneEnumInfos type="ModelRefInfoRepo.StandaloneEnumInfo" uuid="9f245cd6-e5c8-4485-ae23-fc36f500a2a0">
+>>>>>>> Stashed changes
       <defaultValue>None</defaultValue>
       <enumName>SupervisorModeType</enumName>
       <labels>None</labels>
@@ -85,7 +105,11 @@
       <values>7</values>
       <values>8</values>
     </standaloneEnumInfos>
+<<<<<<< Updated upstream
     <stateflowAutoEnumInfos type="ModelRefInfoRepo.StateflowAutoEnumInfo" uuid="d746bba4-30ea-44fe-a33b-bcb07f71d3ec">
+=======
+    <stateflowAutoEnumInfos type="ModelRefInfoRepo.StateflowAutoEnumInfo" uuid="138fc877-2384-4ec2-a55e-07628e9f71d2">
+>>>>>>> Stashed changes
       <checksum>2016987121.1507567317.2783028039.2342630066.</checksum>
       <enumName>SupervisorModeType</enumName>
       <modelName>SPERTE_printer</modelName>
@@ -93,6 +117,7 @@
     </stateflowAutoEnumInfos>
     <timingAndTaskingRegistry>&lt;?xml version=&quot;1.0&quot;?&gt;
 &lt;slexec_sto version=&quot;1.1&quot; packageUris=&quot;http://schema.mathworks.com/mf0/slexec_mm_sto/R2025a_202404151030&quot;&gt;
+<<<<<<< Updated upstream
   &lt;sto.Registry type=&quot;sto.Registry&quot; uuid=&quot;26794c35-4877-492c-8cfe-5452d65a28a9&quot;&gt;
     &lt;executionSpec&gt;Undetermined&lt;/executionSpec&gt;
     &lt;identifier&gt;SPERTE_printer&lt;/identifier&gt;
@@ -100,44 +125,82 @@
       &lt;clocks type=&quot;sto.Timer&quot; uuid=&quot;3cf5afe6-b4a9-400b-808b-677700c53195&quot;&gt;
         &lt;computedFundamentalDiscretePeriod&gt;.001&lt;/computedFundamentalDiscretePeriod&gt;
         &lt;fastestDiscreteRate type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;c4dc5165-eb4f-4799-8eb4-59380af8f8b6&quot;/&gt;
+=======
+  &lt;sto.Registry type=&quot;sto.Registry&quot; uuid=&quot;22345026-ff90-4cf3-9212-64e16ba21fc6&quot;&gt;
+    &lt;executionSpec&gt;Undetermined&lt;/executionSpec&gt;
+    &lt;identifier&gt;SPERTE_printer&lt;/identifier&gt;
+    &lt;clockRegistry type=&quot;sto.ClockRegistry&quot; uuid=&quot;46dd8a6f-bd7d-460b-b897-a0299ccf0ed8&quot;&gt;
+      &lt;clocks type=&quot;sto.Timer&quot; uuid=&quot;47c1e912-5c08-4207-b3a8-6449df6e01a1&quot;&gt;
+        &lt;computedFundamentalDiscretePeriod&gt;.001&lt;/computedFundamentalDiscretePeriod&gt;
+        &lt;fastestDiscreteRate type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;6a5341d6-bc96-49d2-8ee7-fce622260e12&quot;/&gt;
+>>>>>>> Stashed changes
         &lt;isDefaultTimer&gt;true&lt;/isDefaultTimer&gt;
         &lt;resolution&gt;.001&lt;/resolution&gt;
         &lt;timeAdvanceMode&gt;FixedStep&lt;/timeAdvanceMode&gt;
         &lt;identifier&gt;SPERTE_printer::defaultTimer&lt;/identifier&gt;
+<<<<<<< Updated upstream
         &lt;rates type=&quot;sto.ContinuousRate&quot; uuid=&quot;ec08c41c-84be-47e3-a648-8bd5256e81b5&quot;&gt;
+=======
+        &lt;rates type=&quot;sto.ContinuousRate&quot; uuid=&quot;42dc45b7-0114-47a7-bb49-9f3e6e8510d1&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;Cont&lt;/annotation&gt;
           &lt;clockId&gt;SPERTE_printer::defaultTimer&lt;/clockId&gt;
           &lt;colorIndex&gt;-1&lt;/colorIndex&gt;
           &lt;description&gt;Continuous&lt;/description&gt;
           &lt;taskId&gt;_task0&lt;/taskId&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;8837df1b-1ab0-42c0-a06b-811833d4cb77&quot;/&gt;
         &lt;/rates&gt;
         &lt;rates type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;c4dc5165-eb4f-4799-8eb4-59380af8f8b6&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;8d89fe4e-2f28-4d25-9b3c-79df66deb886&quot;/&gt;
+        &lt;/rates&gt;
+        &lt;rates type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;6a5341d6-bc96-49d2-8ee7-fce622260e12&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;D1&lt;/annotation&gt;
           &lt;clockId&gt;SPERTE_printer::defaultTimer&lt;/clockId&gt;
           &lt;description&gt;Discrete 1&lt;/description&gt;
           &lt;rateIdx&gt;1&lt;/rateIdx&gt;
           &lt;taskId&gt;_task0&lt;/taskId&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;b8c3e50b-c3ea-47a3-aa33-fbb45ca5ac35&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;f365c838-73ed-421a-b3fb-3488c9e1d726&quot;&gt;
+>>>>>>> Stashed changes
             &lt;period&gt;.001&lt;/period&gt;
             &lt;rateType&gt;ClassicPeriodicDiscrete&lt;/rateType&gt;
           &lt;/rateSpec&gt;
         &lt;/rates&gt;
+<<<<<<< Updated upstream
         &lt;baseRate type=&quot;sto.ContinuousRate&quot; uuid=&quot;388e601b-bb15-4115-b821-d3131eae373e&quot;&gt;
+=======
+        &lt;baseRate type=&quot;sto.ContinuousRate&quot; uuid=&quot;0d8a1475-c97e-422f-be44-115592b84096&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;Cont&lt;/annotation&gt;
           &lt;clockId&gt;SPERTE_printer::defaultTimer&lt;/clockId&gt;
           &lt;colorIndex&gt;-1&lt;/colorIndex&gt;
           &lt;description&gt;Continuous&lt;/description&gt;
           &lt;taskId&gt;_task0&lt;/taskId&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;798c6fe8-37c9-496d-a5f8-2d6d395b97bf&quot;/&gt;
         &lt;/baseRate&gt;
       &lt;/clocks&gt;
       &lt;clocks type=&quot;sto.Event&quot; uuid=&quot;2324cb30-620a-473a-8d8d-1829ff5c18e8&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;16bc9376-3627-47bd-9739-1b6f55913aa0&quot;/&gt;
+        &lt;/baseRate&gt;
+      &lt;/clocks&gt;
+      &lt;clocks type=&quot;sto.Event&quot; uuid=&quot;6f240e98-6f1f-448a-9ab2-69b7e454f126&quot;&gt;
+>>>>>>> Stashed changes
         &lt;eventType&gt;PARAMETER_CHANGE_EVENT&lt;/eventType&gt;
         &lt;cNum&gt;1&lt;/cNum&gt;
         &lt;clockType&gt;Event&lt;/clockType&gt;
         &lt;identifier&gt;ParameterChangeEvent&lt;/identifier&gt;
+<<<<<<< Updated upstream
         &lt;rates type=&quot;sto.ModelWideEventRate&quot; uuid=&quot;963907cf-3013-4373-9dc2-b94b566b935e&quot;&gt;
+=======
+        &lt;rates type=&quot;sto.ModelWideEventRate&quot; uuid=&quot;09a9f0d7-680a-4a36-a14c-ca7eb98104eb&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;Inf&lt;/annotation&gt;
           &lt;clockId&gt;ParameterChangeEvent&lt;/clockId&gt;
           &lt;colorIndex&gt;-1&lt;/colorIndex&gt;
@@ -145,7 +208,11 @@
           &lt;rateIdx&gt;-1&lt;/rateIdx&gt;
           &lt;taskId&gt;ModelWideParameterChangeEvent&lt;/taskId&gt;
           &lt;useForExecution&gt;NotForExecution&lt;/useForExecution&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;77852310-d8fe-4bde-a244-54a595c54291&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;deca9864-6280-4382-9c0c-575a6a4f9c85&quot;&gt;
+>>>>>>> Stashed changes
             &lt;period&gt;inf&lt;/period&gt;
             &lt;rateType&gt;ModelWideParameterChangeEvent&lt;/rateType&gt;
           &lt;/rateSpec&gt;
@@ -153,10 +220,17 @@
       &lt;/clocks&gt;
       &lt;timeAdvanceMode&gt;FixedStep&lt;/timeAdvanceMode&gt;
     &lt;/clockRegistry&gt;
+<<<<<<< Updated upstream
     &lt;taskRegistry type=&quot;sto.TaskRegistry&quot; uuid=&quot;c3405c25-3e8a-4beb-bd57-1d46d800b98d&quot;&gt;
       &lt;rootTaskHierarchyElements type=&quot;sto.Task&quot; uuid=&quot;d2db801d-2b86-4094-ab69-c108003a1c1c&quot;&gt;
         &lt;isExplicit&gt;true&lt;/isExplicit&gt;
         &lt;rates type=&quot;sto.ModelWideEventRate&quot; uuid=&quot;6d1d5b86-54fd-4060-bbc2-ecd8e7897aab&quot;&gt;
+=======
+    &lt;taskRegistry type=&quot;sto.TaskRegistry&quot; uuid=&quot;48307e20-4394-4868-b71e-f03c47625a21&quot;&gt;
+      &lt;rootTaskHierarchyElements type=&quot;sto.Task&quot; uuid=&quot;21097d87-ceb1-439c-a4ab-09c94969e4e0&quot;&gt;
+        &lt;isExplicit&gt;true&lt;/isExplicit&gt;
+        &lt;rates type=&quot;sto.ModelWideEventRate&quot; uuid=&quot;ab5d75a7-1305-4e95-b2b4-c8c509a26a25&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;Inf&lt;/annotation&gt;
           &lt;clockId&gt;ParameterChangeEvent&lt;/clockId&gt;
           &lt;colorIndex&gt;-1&lt;/colorIndex&gt;
@@ -164,7 +238,11 @@
           &lt;rateIdx&gt;-1&lt;/rateIdx&gt;
           &lt;taskId&gt;ModelWideParameterChangeEvent&lt;/taskId&gt;
           &lt;useForExecution&gt;NotForExecution&lt;/useForExecution&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;80ebb8ef-1cca-4ac8-ac4c-e7926bec86c2&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;3934c88e-945d-4b34-9a16-21e2e94e007e&quot;&gt;
+>>>>>>> Stashed changes
             &lt;period&gt;inf&lt;/period&gt;
             &lt;rateType&gt;ModelWideParameterChangeEvent&lt;/rateType&gt;
           &lt;/rateSpec&gt;
@@ -175,24 +253,41 @@
         &lt;identifier&gt;ModelWideParameterChangeEvent&lt;/identifier&gt;
         &lt;priority&gt;-1&lt;/priority&gt;
       &lt;/rootTaskHierarchyElements&gt;
+<<<<<<< Updated upstream
       &lt;rootTaskHierarchyElements type=&quot;sto.Task&quot; uuid=&quot;aa67dc56-a855-4aaa-b817-79d4a0afdad6&quot;&gt;
         &lt;isExecutable&gt;true&lt;/isExecutable&gt;
         &lt;orderIndex&gt;1&lt;/orderIndex&gt;
         &lt;rates type=&quot;sto.ContinuousRate&quot; uuid=&quot;441a830e-c2c5-417f-acfc-587286dac260&quot;&gt;
+=======
+      &lt;rootTaskHierarchyElements type=&quot;sto.Task&quot; uuid=&quot;f66b0d5f-9853-41e5-b25b-39f3b00f1328&quot;&gt;
+        &lt;isExecutable&gt;true&lt;/isExecutable&gt;
+        &lt;orderIndex&gt;1&lt;/orderIndex&gt;
+        &lt;rates type=&quot;sto.ContinuousRate&quot; uuid=&quot;69ba3a38-87d6-423e-8847-8aaf7722597b&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;Cont&lt;/annotation&gt;
           &lt;clockId&gt;SPERTE_printer::defaultTimer&lt;/clockId&gt;
           &lt;colorIndex&gt;-1&lt;/colorIndex&gt;
           &lt;description&gt;Continuous&lt;/description&gt;
           &lt;taskId&gt;_task0&lt;/taskId&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;a56d9ac1-5af4-4669-911a-952622440fe9&quot;/&gt;
         &lt;/rates&gt;
         &lt;rates type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;25d87cd0-eceb-403e-9755-c297b8011f56&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;3f338b88-7cd9-459b-b2ed-3ca8167c94ec&quot;/&gt;
+        &lt;/rates&gt;
+        &lt;rates type=&quot;sto.ClassicPeriodicDiscreteRate&quot; uuid=&quot;6a04f99d-1699-427a-b662-e7e331025848&quot;&gt;
+>>>>>>> Stashed changes
           &lt;annotation&gt;D1&lt;/annotation&gt;
           &lt;clockId&gt;SPERTE_printer::defaultTimer&lt;/clockId&gt;
           &lt;description&gt;Discrete 1&lt;/description&gt;
           &lt;rateIdx&gt;1&lt;/rateIdx&gt;
           &lt;taskId&gt;_task0&lt;/taskId&gt;
+<<<<<<< Updated upstream
           &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;9c4898d5-dbaa-4b4c-bbaf-55f35397c79e&quot;&gt;
+=======
+          &lt;rateSpec type=&quot;sto.RateSpec&quot; uuid=&quot;a6aac3ab-d9e5-43d3-81a7-3de44514b8f2&quot;&gt;
+>>>>>>> Stashed changes
             &lt;period&gt;.001&lt;/period&gt;
             &lt;rateType&gt;ClassicPeriodicDiscrete&lt;/rateType&gt;
           &lt;/rateSpec&gt;
@@ -203,19 +298,31 @@
         &lt;identifier&gt;_task0&lt;/identifier&gt;
         &lt;priority&gt;40&lt;/priority&gt;
       &lt;/rootTaskHierarchyElements&gt;
+<<<<<<< Updated upstream
       &lt;taskDependencyGraph type=&quot;sto.SerializedTaskConnectionList&quot; uuid=&quot;81f84c74-82d7-493a-bb3e-214bfdff5930&quot;&gt;
         &lt;clockIdentifier&gt;SPERTE_printer::defaultTimer&lt;/clockIdentifier&gt;
         &lt;taskIdentifier&gt;_task0&lt;/taskIdentifier&gt;
       &lt;/taskDependencyGraph&gt;
       &lt;taskDependencyGraph type=&quot;sto.SerializedTaskConnectionList&quot; uuid=&quot;5cd99773-f916-4193-b96a-9b88ea244985&quot;&gt;
+=======
+      &lt;taskDependencyGraph type=&quot;sto.SerializedTaskConnectionList&quot; uuid=&quot;47b639da-d156-41e7-a80d-6bf48c3acb4e&quot;&gt;
+>>>>>>> Stashed changes
         &lt;clockIdentifier&gt;ParameterChangeEvent&lt;/clockIdentifier&gt;
         &lt;taskIdentifier&gt;ModelWideParameterChangeEvent&lt;/taskIdentifier&gt;
+      &lt;/taskDependencyGraph&gt;
+      &lt;taskDependencyGraph type=&quot;sto.SerializedTaskConnectionList&quot; uuid=&quot;fff5c30f-ba1c-4b5e-9c8d-d91bc382e64f&quot;&gt;
+        &lt;clockIdentifier&gt;SPERTE_printer::defaultTimer&lt;/clockIdentifier&gt;
+        &lt;taskIdentifier&gt;_task0&lt;/taskIdentifier&gt;
       &lt;/taskDependencyGraph&gt;
       &lt;taskingMode&gt;ClassicMultiTasking&lt;/taskingMode&gt;
     &lt;/taskRegistry&gt;
   &lt;/sto.Registry&gt;
 &lt;/slexec_sto&gt;</timingAndTaskingRegistry>
+<<<<<<< Updated upstream
     <zeroCrossingInfo type="ModelRefInfoRepo.ZeroCrossingInfo" uuid="ab9d2241-f1a9-470e-9e0c-fb02dab5c558">
+=======
+    <zeroCrossingInfo type="ModelRefInfoRepo.ZeroCrossingInfo" uuid="6b96b5b9-c12d-4dd4-860a-d9e4a6ac3bc5">
+>>>>>>> Stashed changes
       <direction>7</direction>
       <isDiscrete>true</isDiscrete>
       <name>Reset</name>
@@ -223,10 +330,17 @@
       <type>1</type>
       <width>1</width>
     </zeroCrossingInfo>
+<<<<<<< Updated upstream
     <FMUBlockMap type="ModelRefInfoRepo.FMUBlockInfo" uuid="85112c66-d8d6-4f81-99a3-a54cdfa30d5c"/>
     <codeGenInfo type="ModelRefInfoRepo.CodeGenInformation" uuid="f79ed4cd-b9ac-4bf1-9892-43ef118ff4b8"/>
     <compiledVariantInfos type="ModelRefInfoRepo.CompiledVariantInfoMap" uuid="f1927cdb-ea60-41c2-8eb1-64409f1aac01"/>
     <configSettingsForConsistencyChecks type="ModelRefInfoRepo.ConfigSettingsForConsistencyChecks" uuid="70e2fb1e-f771-4113-8bc6-653abf5059f3">
+=======
+    <FMUBlockMap type="ModelRefInfoRepo.FMUBlockInfo" uuid="a5102114-336c-4a26-8f8f-548e5d06e50f"/>
+    <codeGenInfo type="ModelRefInfoRepo.CodeGenInformation" uuid="4e652ce6-ebd7-415e-b13b-18d9efa8ea49"/>
+    <compiledVariantInfos type="ModelRefInfoRepo.CompiledVariantInfoMap" uuid="d0d90893-9a36-4a75-aa27-a22e422fd5aa"/>
+    <configSettingsForConsistencyChecks type="ModelRefInfoRepo.ConfigSettingsForConsistencyChecks" uuid="dd920809-785a-4fa1-a193-ccc5d2d837f9">
+>>>>>>> Stashed changes
       <consistentOutportInitialization>true</consistentOutportInitialization>
       <dateTimeAtTZero>0.0</dateTimeAtTZero>
       <dateTimeAtTZero>0.0</dateTimeAtTZero>
@@ -241,7 +355,11 @@
       <simSIMDOptimization>1</simSIMDOptimization>
       <solverName>FixedStepDiscrete</solverName>
       <solverType>SOLVER_TYPE_FIXEDSTEP</solverType>
+<<<<<<< Updated upstream
       <hardwareSettings type="ModelRefInfoRepo.HardwareSettings" uuid="aa77feb4-b0ab-428a-838a-fa88414a1c1e">
+=======
+      <hardwareSettings type="ModelRefInfoRepo.HardwareSettings" uuid="3bc3e1d1-64a0-444f-8880-20037dfb1c50">
+>>>>>>> Stashed changes
         <prodBitPerChar>8</prodBitPerChar>
         <prodBitPerDouble>64</prodBitPerDouble>
         <prodBitPerFloat>32</prodBitPerFloat>
@@ -260,6 +378,7 @@
         <prodWordSize>64</prodWordSize>
       </hardwareSettings>
     </configSettingsForConsistencyChecks>
+<<<<<<< Updated upstream
     <controllableInputRatesMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="57fc323f-7fa3-4f76-bc07-8e4a5c4920b4"/>
     <controllableOutputRatesMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="1515a348-d42b-4012-ae07-3befcdf6462f"/>
     <dataPortGroup type="ModelRefInfoRepo.DataPortGroup" uuid="1ec6e5d2-a74f-4658-8695-9c8e02b84702"/>
@@ -268,6 +387,16 @@
     <messageInfo type="ModelRefInfoRepo.MessageInformation" uuid="0112b3ed-594a-4aa9-ad7b-82b55d289695"/>
     <methodInfo type="ModelRefInfoRepo.MethodExistenceInfo" uuid="ba5aba4d-11ce-465a-b40d-21bdd569909d"/>
     <periodicEventPortUnsupportedBlockInfo type="ModelRefInfoRepo.PeriodicEventPortUnsupportedBlockInfo" uuid="85c5481a-99d2-4fba-ba06-8abcdc07ae9f">
+=======
+    <controllableInputRatesMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="12da7c20-ef74-4f11-8c46-4d5aed1d6eac"/>
+    <controllableOutputRatesMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="60656279-ac24-4ca0-b50a-6e4f6aed8368"/>
+    <dataPortGroup type="ModelRefInfoRepo.DataPortGroup" uuid="b794530f-4d87-4573-9d70-d1f3d3c6bbe9"/>
+    <expFcnUnconnectedDataPortGroup type="ModelRefInfoRepo.DataPortGroup" uuid="f2694fb7-8ac1-4947-b2ac-089ba12aff2c"/>
+    <interfaceParameterInfo type="ModelRefInfoRepo.InterfaceParameterInfo" uuid="a23db908-9a7e-4755-98ad-039b9772d235"/>
+    <messageInfo type="ModelRefInfoRepo.MessageInformation" uuid="51064d01-26ee-4951-9a12-fb9a8b1b6e9c"/>
+    <methodInfo type="ModelRefInfoRepo.MethodExistenceInfo" uuid="78393f00-1561-4a2a-8a36-128d844bdede"/>
+    <periodicEventPortUnsupportedBlockInfo type="ModelRefInfoRepo.PeriodicEventPortUnsupportedBlockInfo" uuid="3460c497-80ad-4400-9b4d-c4c1bfa7a902">
+>>>>>>> Stashed changes
       <deterministicRTBs>SPERTE_printer/Printer/E//BOX I-O/Rate Transition12</deterministicRTBs>
       <deterministicRTBs>SPERTE_printer/Printer/E//BOX I-O/Rate Transition13</deterministicRTBs>
       <deterministicRTBs>SPERTE_printer/Printer/E//BOX I-O/Rate Transition14</deterministicRTBs>
@@ -279,6 +408,7 @@
       <deterministicRTBs>SPERTE_printer/Printer/E//BOX I-O/Rate Transition20</deterministicRTBs>
       <deterministicRTBs>SPERTE_printer/Printer/E//BOX I-O/Rate Transition21</deterministicRTBs>
     </periodicEventPortUnsupportedBlockInfo>
+<<<<<<< Updated upstream
     <portGroupsRequireSameRate type="ModelRefInfoRepo.PortGroupsRequireSameRate" uuid="a7e9eb20-7de5-40a9-a26e-b2e17ca9ac47">
       <DSMPortGroups type="ModelRefInfoRepo.NameToPortGroupIdxVectMap" uuid="1fc45ebc-23d1-41eb-b0b5-474b89b1aa6e"/>
       <GlobalDSMPortGroups type="ModelRefInfoRepo.NameToPortGroupIdxVectMap" uuid="5b8594eb-692e-4fff-9e8c-e71b70d656f7"/>
@@ -288,11 +418,26 @@
     <rateSpecOfGlobalDSMAccessedByDescExpFcnMdlMap type="ModelRefInfoRepo.GlobalDSMRateSpecMap" uuid="d6fe1a6e-d98f-4885-ac75-8fe3cea53cb7"/>
     <rootBlockDiagramInterface type="ci.Model" uuid="a4b29e81-a0a2-4b20-9155-0301d5558cb0">
       <p_RootComponentInterface type="ci.ComponentInterface" uuid="660d93cb-5c51-444c-8087-65964460a848">
+=======
+    <portGroupsRequireSameRate type="ModelRefInfoRepo.PortGroupsRequireSameRate" uuid="a914eb3f-cdf0-4f86-b188-e537b5d9190c">
+      <DSMPortGroups type="ModelRefInfoRepo.NameToPortGroupIdxVectMap" uuid="3a87d151-9d69-4c73-8423-30b6b6279a22"/>
+      <GlobalDSMPortGroups type="ModelRefInfoRepo.NameToPortGroupIdxVectMap" uuid="24706863-d84c-4234-ae97-3fa178d8ae88"/>
+      <mergedPortGroups type="ModelRefInfoRepo.NameToPortGroupIdxVectMap" uuid="d1a630f7-4a4d-4831-bb08-f2230ffe009d"/>
+    </portGroupsRequireSameRate>
+    <rateBasedMdlGlobalDSMRateSpec type="ModelRefInfoRepo.GlobalDSMRateSpecMap" uuid="5517085d-c208-409e-94c1-a45fe6603acb"/>
+    <rateSpecOfGlobalDSMAccessedByDescExpFcnMdlMap type="ModelRefInfoRepo.GlobalDSMRateSpecMap" uuid="17a7671a-1aba-43c3-85c8-6a6439dcedfb"/>
+    <rootBlockDiagramInterface type="ci.Model" uuid="db47afa2-8611-485b-a8a4-91e442e7bfd5">
+      <p_RootComponentInterface type="ci.ComponentInterface" uuid="455dc995-8a6a-4433-a260-5512a7f4c865">
+>>>>>>> Stashed changes
         <p_Name>SPERTE_printer</p_Name>
         <p_Type>ROOT</p_Type>
       </p_RootComponentInterface>
     </rootBlockDiagramInterface>
+<<<<<<< Updated upstream
     <simulinkFunctions type="ModelRefInfoRepo.SimulinkFunctions" uuid="fcf2d3a0-f917-4db7-8db6-73d78566e9aa">
+=======
+    <simulinkFunctions type="ModelRefInfoRepo.SimulinkFunctions" uuid="d86cb830-ccf7-4dda-8e04-12e5f14f8b0b">
+>>>>>>> Stashed changes
       <compSimulinkFunctionCatalog></compSimulinkFunctionCatalog>
     </simulinkFunctions>
     <sltpContext type="sltp.mm.core.Context" uuid="42a39bf0-353f-40db-a304-9c550f9a65af">
@@ -341,6 +486,7 @@
         </subgraph>
       </rootTask>
     </sltpContext>
+<<<<<<< Updated upstream
     <stateWriterToOwnerMap type="ModelRefInfoRepo.StateWriterInfo" uuid="d600ea79-5d2f-47c6-a531-8dc363e21355"/>
     <stoClientDataRegistry type="sto.ClientDataRegistry" uuid="090c537b-14cf-47e6-89f9-666465a51c2e">
       <dataSets type="sto.ClientClockNamedDataSet" uuid="aa450e66-0c3c-4e8f-82bb-888a9f9e4fcb">
@@ -354,6 +500,21 @@
         <tSet type="ModelRefInfoRepo.SltpTaskData" uuid="e69da7b1-17d9-4293-b2aa-b8b0b06a75ca">
           <dataName>Cont</dataName>
           <linkedSet type="sto.ClientTaskHierarchyElementNamedDataSet" uuid="3db797d9-af43-4c64-8320-f987da12fe9d"/>
+=======
+    <stateWriterToOwnerMap type="ModelRefInfoRepo.StateWriterInfo" uuid="8d9a271d-9951-4e6a-ab92-d48a4b9d5a63"/>
+    <stoClientDataRegistry type="sto.ClientDataRegistry" uuid="4a6e3600-5045-4391-b364-033e478fb30e">
+      <dataSets type="sto.ClientClockNamedDataSet" uuid="c6a5111b-455f-46aa-9e0c-6dc351945c85">
+        <tag>sltpEvents</tag>
+      </dataSets>
+      <dataSets type="sto.ClientTaskHierarchyElementNamedDataSet" uuid="e2952cdd-27d9-42e8-b01c-986db72ab232">
+        <tag>sltpTaskGroups</tag>
+      </dataSets>
+      <dataSets type="sto.ClientTaskHierarchyElementNamedDataSet" uuid="3684e0b1-15d7-4474-8178-a39a058576a0">
+        <dSet type="ModelRefInfoRepo.SltpTaskData" uuid="90c09519-9bb2-4c05-a0f6-71ad0660c771"/>
+        <tSet type="ModelRefInfoRepo.SltpTaskData" uuid="90c09519-9bb2-4c05-a0f6-71ad0660c771">
+          <dataName>Cont</dataName>
+          <linkedSet type="sto.ClientTaskHierarchyElementNamedDataSet" uuid="3684e0b1-15d7-4474-8178-a39a058576a0"/>
+>>>>>>> Stashed changes
           <id type="sto.TaskHierarchyElementId">
             <clockId>SPERTE_printer::defaultTimer</clockId>
             <id>_task0</id>
@@ -362,6 +523,10 @@
         <tag>sltpTasks</tag>
       </dataSets>
     </stoClientDataRegistry>
+<<<<<<< Updated upstream
     <varTsUIDMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="24e8bd41-e86c-4d12-b661-c262b6030104"/>
+=======
+    <varTsUIDMap type="ModelRefInfoRepo.VarTsUIDMap" uuid="d596415f-167a-4142-bca6-4e3349a9d8ad"/>
+>>>>>>> Stashed changes
   </ModelRefInfoRepo.ModelRefInfoRoot>
 </MF0>

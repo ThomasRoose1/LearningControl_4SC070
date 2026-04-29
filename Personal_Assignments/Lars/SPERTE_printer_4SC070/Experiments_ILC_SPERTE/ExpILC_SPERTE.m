@@ -18,7 +18,7 @@ clf; close all; clc;
 clearvars -except p Fs Ts tsim
 
 % Number of trials.
-N_trial = 2;
+N_trial = 5;
 
 %% Hook to the (currently running) Simulink model and home for the first time
 prep_simulink_model;
@@ -98,6 +98,8 @@ while trial <= N_trial
     u_j = measurement(:,2);
     e_j = measurement(:,3);
     
+    
+
     % Store trial data
     history.f(:,trial)     = f_j;
     history.u(:,trial)     = u_j;
@@ -105,7 +107,11 @@ while trial <= N_trial
     history.eNorm(:,trial) = norm(e_j,2);
     
     % Calculate new feedforward:
-    f_jplus1 = feedforwardUpdate(t,r,e_j,u_j,f_j);
+    f_jplus1 = feedforwardUpdate(t,r,e_j,u_j,f_j, trial);
+    
+    f_jplus1(4300:end) = 0;
+
+    % e_j(3900:end) = 0;
     
     % Plot data
     PlotTrialData;
@@ -117,9 +123,16 @@ while trial <= N_trial
     if strcmp(answer,'No')
         break
     end
+    
+    % f_j(4000:end) = 0;
+    
 
+    
     trial = trial + 1;
 end
+
+% plot(t, e_j)
+
 save('history.mat','history');
 
 % Deactivate the model

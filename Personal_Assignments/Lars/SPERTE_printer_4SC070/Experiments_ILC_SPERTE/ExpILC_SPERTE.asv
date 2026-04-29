@@ -1,0 +1,154 @@
+%% Iterative Learning Control simulations with SPERTE
+% For questions / remarks, contact t.s.ickenroth@tue.nl
+
+% Try SPERTE_Ping_Target
+% And then make sure the Simulink model is running (click Monitor & Tune) BEFORE starting this script. 
+% Run the following command once, with the right IP address of the PI:  
+% p = SPERTE_Find_Pi
+
+if SPERTE_Ping_Target('Verbose', false)
+    p = SPERTE_Find_Pi;
+else
+    errordlg("Pi is not reachable! check your connection and try again!");
+    return;
+end
+
+set(0,'DefaultFigureWindowStyle','normal')
+clf; close all; clc;
+clearvars -except p Fs Ts tsim
+
+% Number of trials.
+N_trial = 4;
+
+%% Hook to the (currently running) Simulink model and home for the first time
+prep_simulink_model;
+printer_home(BlockPaths{Index_home});
+
+%% Load models
+load('PrinterModel2020.mat');
+load('PrinterController.mat');
+G       = PrinterModelSS;
+C       = minreal(shapeit_data.C_tf_z);
+T       = feedback(C*G,1);
+GS_ss   = ss(feedback(G,C));
+
+%% Load trajectory.
+% Trial length:
+N   = 4501;  
+
+set_param(BlockPaths{find(contains(BlockPaths,'Measurement Block'))},'N_samples',num2str(N));
+
+load('trajectory.mat');
+t = t_ref; r.p = x_ref; r.v = v_ref; r.a = a_ref;
+r.j = [ 0 ; diff(r.a)/Ts ];
+r.s = [ 0 ; diff(r.j)/Ts ];
+r.p( r.p<1e-15 )=0; % make low values equal to zero
+
+
+%% INITIALIZE:
+% Initial feedforward.
+f_jplus1 = zeros(N,1);
+
+% Initialize plotting.
+PlotTrialData;
+
+% Initialize storage variables.
+history.f     = NaN(N,N_trial);
+history.u     = NaN(N,N_trial);
+history.e     = NaN(N,N_trial);
+history.eNorm = NaN(1,N_trial);
+
+%% START ILC:
+trial = 1;
+while trial <= N_trial
+    
+    % Update index.
+    f_j     = f_jplus1;
+    
+    % Set reference
+    simulink_set_constant(BlockPaths{Index_ref},r.p);
+    
+    % Set feedforward
+    simulink_set_constant(BlockPaths{Index_ff},f_j);
+    
+    % Start/trigger the trial
+    simulink_set_constant(BlockPaths{Index_active}, 1);
+    simulink_set_constant(BlockPaths{Index_active}, 0);
+    
+    % Wait for experiment to finish
+    pause(N * Ts);
+
+    % Verify the experiment is finished
+    while is_target_busy(rto_measure_finish,rto_did_finish)
+        pause(0.1); 
+    end
+
+    % Collect measurements from the Pi
+    file_list = SPERTE_Get_Latest_Measurement(p,'bin',1);
+    measurement = SPERTE_Bin_To_Mat(file_list,4);
+    
+    % Repeat the trial if retrieved data is corrupted for any reason
+    if (length(measurement) ~= N)
+        warning("Unexpected retrieved data length.");
+        answer = questdlg('WARNING: Unexpected retrieved data length! Do you want to repeat the trial and continue?', 'WARNING!','Yes','No','No');
+        if strcmp(answer,'No'); break; end
+        continue;
+    end
+
+    u_j = measurement(:,2);
+    e_j = measurement(:,3);
+    
+    
+
+    % Store trial data
+    history.f(:,trial)     = f_j;
+    history.u(:,trial)     = u_j;
+    history.e(:,trial)     = e_j;
+    history.eNorm(:,trial) = norm(e_j,2);
+    
+    % Calculate new feedforward:
+    f_jplus1 = feedforwardUpdate(t,r,e_j,u_j,f_j, trial);
+    
+    f_j(4250:end) = 0;
+    
+    % e_j(3900:end) = 0;
+    
+    % Plot data
+    PlotTrialData;
+    title(sprintf('||e||_{infty} = %.3f mm\t||e||_2 = %.3f m', ...
+        max(abs(e_j))*1000, norm(e_j,2)))
+
+    % Dialog to continue 
+    answer = questdlg('Do you want to continue with the next (blue) feedforward signal?', 'Check','Yes','No','No');
+    if strcmp(answer,'No')
+        break
+    end
+    
+    % f_j(4000:end) = 0;
+    
+
+    
+    trial = trial + 1;
+end
+
+% plot(t, e_j)
+
+save('history.mat','history');
+
+% Deactivate the model
+simulink_set_constant(BlockPaths{Index_active}, 0);
+
+% End.
+disp('Done!');
+
+% When you're completely done with all experiments, don't forget to run:
+% SPERTE_Shutdown
+
+
+%% Helper functions
+function busy = is_target_busy(rto_measure_finish, rto_did_finish)
+    measurement_busy = get(rto_measure_finish.OutputPort(1)).Data;
+    reference_busy = ~get(rto_did_finish.InputPort(1)).Data;
+
+    busy = measurement_busy || reference_busy;
+end

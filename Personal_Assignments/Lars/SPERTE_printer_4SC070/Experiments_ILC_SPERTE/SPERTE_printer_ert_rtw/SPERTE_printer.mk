@@ -2,7 +2,11 @@
 ## Makefile generated for component 'SPERTE_printer'. 
 ## 
 ## Makefile     : SPERTE_printer.mk
+<<<<<<< Updated upstream
 ## Generated on : Fri Apr 24 13:15:41 2026
+=======
+## Generated on : Wed Apr 29 11:15:35 2026
+>>>>>>> Stashed changes
 ## Final product: $(RELATIVE_PATH_TO_ANCHOR)/SPERTE_printer.elf
 ## Product type : executable
 ## 
