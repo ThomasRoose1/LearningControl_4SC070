@@ -11,7 +11,7 @@ function f_jplus1 = feedforwardUpdate(t,r,e_j,u_j,f_j)
 %f_j = current trial feed forward signal
 
 % Load trajectory for feedforward exercise.
-% load('trajectory.mat');
+load('trajectory.mat');
 
 % Load Learning controller (uncomment for ILC implementation).
 load('ILCController.mat'); % design in DesignController.m
@@ -19,15 +19,16 @@ load('ILCController.mat'); % design in DesignController.m
 % Calculate feedforward.
 
 % mass feedforward for exercise 1.c
-m = 0.2; %tune mass parameter
+m = 0.091; %tune mass parameter
 f_jplus1 = m*r.a;
+% f_jplus1 = f_j;
 
-% Define how many samples to clear
-x = 1000; 
-e_j(end-x+1:end) = 0;
-
-xu = 500;
-u_j(end-xu+1:end) = 0;
+% % Define how many samples to clear
+% x = 1000; 
+% e_j(end-x+1:end) = 0;
+% 
+% xu = 500;
+% u_j(end-xu+1:end) = 0;
 
 % % learning feedforward
 % alpha = 0.5;
