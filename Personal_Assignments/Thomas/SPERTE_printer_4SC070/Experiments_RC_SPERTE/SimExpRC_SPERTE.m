@@ -10,11 +10,11 @@ else
 end
 
 %% RC settings
-N_trial = 15;       % number of disturbance periods. Max 20
+N_trial = 20;       % number of disturbance periods. Max 20
 N_RC_activate = 5;  % RC is activated after N_RC_activate periods
 
-method = 'simulation';      % select 'simulation' or 'experiment'
-% method = 'experiment';
+% method = 'simulation';      % select 'simulation' or 'experiment'
+method = 'experiment';
 
 %Load trajectory
 load('trajectory_RC.mat');
