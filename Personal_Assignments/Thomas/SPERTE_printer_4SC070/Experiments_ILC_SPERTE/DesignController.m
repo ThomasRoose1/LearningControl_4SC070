@@ -50,11 +50,18 @@ exportgraphics(h, 'Exports/Bode_G_C.pdf', 'ContentType', 'vector');
 % model stable? no, double integrator means unstable
 abs(eig(G.A))
 
-% Closed loop stable?
+% controller stable? 
+abs(eig(C))
 
+% Closed loop stable?
+L_loop = G * C;  
+fig2 = figure; nyquist(L_loop);
+xlim([-2 1]); ylim([-2 2]);
+title('')
+exportgraphics(fig2, 'Exports/Nyquist.pdf', 'ContentType', 'vector')
 
 %% Bode plots of system
-L_loop = G * C;             % Open-loop transfer function
+           % Open-loop transfer function
 S = feedback(1, L_loop); % Using feedback function
 GS = feedback(G, C);
 figure;
