@@ -18,7 +18,7 @@ clf; close all; clc;
 clearvars -except p Fs Ts tsim
 
 % Number of trials.
-N_trial = 20;
+N_trial = 2;
 
 %% Hook to the (currently running) Simulink model and home for the first time
 prep_simulink_model;

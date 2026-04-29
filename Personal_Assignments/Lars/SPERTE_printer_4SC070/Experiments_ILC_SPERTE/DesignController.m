@@ -5,7 +5,7 @@ clc;
 
 
 %% Parameters
-fs = 1000;         % sample frequency
+fs = 1000;         % sample frequency\\
 Ts = 1/fs;         % sample time
 N = 4501;          % trial length
 save_switch = 1;   % switch for saving ILC filters: 1 = save, 0 = no save
@@ -61,6 +61,11 @@ figure;
 bode(GS);
 hold on;
 bode(L);
+bode(Lc,'--');
+
+% Add a legend to identify each system
+legend('Original Plant (GS)', 'non causal (L)', 'causal (Lc)');
+grid on; % Recommended for reading margins
 % Learning filter L
 
 fN = fs/2;                                                                  % Nyquist frequency
@@ -69,9 +74,6 @@ n = [4];                                                                     % O
 
 [Qb,Qa] = butter(n,fC/fN);
 Q = tf(Qb,Qa,Ts);    
-
-
-
 
 % %% Own system analysis 1.a
 % w = Gfrf.freq*2*pi;      % rad/s
