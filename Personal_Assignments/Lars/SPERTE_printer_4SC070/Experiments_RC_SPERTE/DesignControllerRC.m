@@ -24,8 +24,11 @@ C = minreal(shapeit_data.C_tf_z);
 
 %% Exercise XX
 % Closed-loop transfer functions
-T = feedback(C*G, 1);
+T = feedback(G*C, 1);
+T = minreal(T);
+
 Tfrd = feedback(C*Gfrf,1);
+
 poles_T = pole(T);
 
 [z, p, k] = zpkdata(T)
@@ -50,6 +53,8 @@ figure;
 bode(T); hold on;
 bode(L_c);
 bode(L)
+legend("T",'L_{causal}','L_{non causal}');
+title("T vs L_{causal} vs L_{non causal}")
 
 %%
 %b
@@ -59,14 +64,16 @@ bodemag(1-T*L);
 hold on;
 bodemag(1-Tfrd*L);
 yline(0);
-
+legend("model 1-TL", "frf 1-TL")
+xlim([10,10^4]);
+title("1-TL of model and frf data")
 
 
 %%
 %c
 fC = 10;                                                                    % desired cut-off frequency
 fn = 1/(2*Ts);                                                              % Nyquist frequency
-M = 100;                                                                     % desired order of low-pass FIR filter
+M = 100;                                                                    % desired order of low-pass FIR filter
 
 num = fir1(M,fC/fn);        % create low-pass FIR filter coefficients
 Q = tf(num,1,Ts);           % create filter
@@ -77,14 +84,20 @@ Q_c = Q*tf(1,[1,zeros(1,M)],Ts); % Extract causal part
 p_Q=M;                      % number of preview samples
 
 figure;
+bodemag(1-Tfrd*L);
+hold on;
 bodemag(Q*(1-Tfrd*L));
 yline(0);
+legend("(1-TL)", "Q(1-TL)")
+title("Effect of Q filter on 1-TL")
 
 %Check Q and Q
 opts = bodeoptions;
 opts.PhaseWrapping = 'on';
 figure;
 bode(Q, conj(Q)*Q, opts);
+legend("Q", "Q^{*}Q")
+title("Q filter")
 %% Make required plots to validate your RC design!
 % Your code here ...
 
