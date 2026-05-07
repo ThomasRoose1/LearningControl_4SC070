@@ -1,0 +1,198 @@
+%% Parameters
+fs = 1000;         % sample frequency\\
+Ts = 1/fs;         % sample time
+
+%% System model, system frequency response measurement and controller.
+% System model and FRF measurement.
+load('PrinterModel2020.mat');
+G = PrinterModelSS;
+Gfrf = PrinterModelFRF;
+
+% Feedback controller.
+load('PrinterController.mat');
+C = minreal(shapeit_data.C_tf_z);
+
+Gfrd = frd(Gfrf.frf,Gfrf.freq*2*pi,Ts);
+
+%% 4.1a
+N = 100;
+GS = feedback(G, C);
+
+% impulse response of GS
+g = impulse(GS, 0:Ts:(N-1)*Ts);
+g = squeeze(g);
+
+% Construct lifted matrix J
+J = toeplitz(g,[g(1); zeros(N-1,1)]);
+
+% Remove very small numerical entries
+J(abs(J) < 1e-10) = 0;
+
+% Inspect structure
+figure;
+mesh(J);
+title('Mesh plot of J');
+
+figure;
+imagesc(J);
+colorbar;
+title('Imagesc of J');
+
+%% 4.1b
+N = 100;
+
+we  = 1e3;
+wf  = 1e-3;
+wdf = 1e-1;
+
+We  = we  * eye(N);
+Wf  = wf  * eye(N);
+Wdf = wdf * eye(N);
+
+% Compute lifted ILC matrices
+L = (J'*We*J + Wf + Wdf)\(J'*We);
+
+Q = (J'*We*J + Wf + Wdf)\(J'*We*J + Wdf);
+
+figure;
+hold on;
+for k = -5:5
+    plot(diag(L,k));
+end
+title('Diagonals of L');
+grid on;
+
+figure;
+hold on;
+for k = -5:5
+    plot(diag(Q,k));
+end
+title('Diagonals of Q');
+grid on;
+
+figure;
+mesh(L);
+xlabel('Column index');
+ylabel('Row index');
+zlabel('Amplitude');
+title('Mesh plot of lifted ILC matrix L');
+
+figure;
+imagesc(L);
+colorbar;
+xlabel('Column index');
+ylabel('Row index');
+title('Imagesc of lifted ILC matrix L');
+
+figure;
+mesh(Q);
+xlabel('Column index');
+ylabel('Row index');
+zlabel('Amplitude');
+title('Mesh plot of lifted ILC matrix Q');
+
+figure;
+imagesc(Q);
+colorbar;
+xlabel('Column index');
+ylabel('Row index');
+title('Imagesc of lifted ILC matrix Q');
+
+%% Convergence and monotonic convergence analysis
+% Assumes J and L are already computed
+
+N = size(J,1);
+
+% Iteration matrix
+M = eye(N) - J*L;
+
+%% ------------------------------------------------------------------------
+% 1. Convergence condition
+% Convergence iff spectral radius rho(M) < 1
+% -------------------------------------------------------------------------
+
+eig_M = eig(M);
+
+rho_M = max(abs(eig_M));
+
+fprintf('Spectral radius rho(M) = %f\n', rho_M);
+
+if rho_M < 1
+    fprintf('=> ILC converges\n');
+else
+    fprintf('=> ILC does NOT converge\n');
+end
+
+%% ------------------------------------------------------------------------
+% 2. Monotonic convergence condition
+% Monotonic convergence iff ||M||_2 < 1
+% -------------------------------------------------------------------------
+
+norm_M = norm(M,2);
+
+fprintf('2-norm ||M||_2 = %f\n', norm_M);
+
+if norm_M < 1
+    fprintf('=> Monotonic convergence guaranteed\n');
+else
+    fprintf('=> Monotonic convergence NOT guaranteed\n');
+end
+
+%% ------------------------------------------------------------------------
+% 3. Plot eigenvalues
+% -------------------------------------------------------------------------
+
+figure;
+plot(real(eig_M), imag(eig_M), 'x');
+hold on;
+
+theta = linspace(0,2*pi,500);
+plot(cos(theta), sin(theta), '--');
+
+xlabel('Real part');
+ylabel('Imaginary part');
+
+title('Eigenvalues of iteration matrix M');
+axis equal;
+grid on;
+
+legend('Eigenvalues','Unit circle');
+
+%% ------------------------------------------------------------------------
+% 4. Simulate error evolution
+% -------------------------------------------------------------------------
+
+nIter = 20;
+
+% Random initial error
+e = randn(N,1);
+
+error_norm = zeros(nIter,1);
+
+for k = 1:nIter
+
+    error_norm(k) = norm(e);
+
+    % Error propagation
+    e = M*e;
+
+end
+
+figure;
+semilogy(0:nIter-1,error_norm,'o-');
+xlabel('Iteration');
+ylabel('||e_j||_2');
+title('Error convergence');
+grid on;
+
+%% ------------------------------------------------------------------------
+% 5. Check monotonic decrease explicitly
+% -------------------------------------------------------------------------
+
+is_monotonic = all(diff(error_norm) <= 0);
+
+if is_monotonic
+    fprintf('=> Error decreases monotonically\n');
+else
+    fprintf('=> Error is NOT monotonically decreasing\n');
+end
