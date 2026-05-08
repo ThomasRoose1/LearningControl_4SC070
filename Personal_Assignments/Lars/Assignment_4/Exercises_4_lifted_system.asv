@@ -17,16 +17,16 @@ Gfrd = frd(Gfrf.frf,Gfrf.freq*2*pi,Ts);
 %% 4.1a
 N = 100;
 GS = feedback(G, C);
-GS = minreal(GS);
 
-% Discrete impulse response of GS
-[g, t] = dimpulse(GS.A, GS.B, GS.C, GS.D,1,N);
+% impulse response of GS
+g = impulse(GS, 0:Ts:(N-1)*Ts);
+g = squeeze(g);
 
 % Construct lifted matrix J
-J = toeplitz(g, [g(1); zeros(N-1,1)]);
+J = toeplitz(g,[g(1); zeros(N-1,1)]);
 
 % Remove very small numerical entries
-J(abs(J) < 1e-8) = 0;
+J(abs(J) < 1e-10) = 0;
 
 % Inspect structure
 figure;
@@ -115,7 +115,7 @@ eig_M = eig(M);
 rho_M = max(abs(eig_M));
 
 disp('Eigenvalues of (Q - LJ):');
-disp(max(abs(eig_M)));
+disp(abs(eig_M);
 
 fprintf('Spectral radius rho(M) = %f\n', rho_M);
 
@@ -140,12 +140,31 @@ else
     fprintf('=> Monotonic convergence NOT guaranteed\n');
 end
 
+%% ------------------------------------------------------------------------
+% 3. Plot eigenvalues
+% -------------------------------------------------------------------------
+
+figure;
+plot(real(eig_M), imag(eig_M), 'x');
+hold on;
+
+theta = linspace(0,2*pi,500);
+plot(cos(theta), sin(theta), '--');
+
+xlabel('Real part');
+ylabel('Imaginary part');
+
+title('Eigenvalues of iteration matrix M');
+axis equal;
+grid on;
+
+legend('Eigenvalues','Unit circle');
 
 %% ------------------------------------------------------------------------
 % 4. Simulate error evolution
 % -------------------------------------------------------------------------
 
-nIter = 1000;
+nIter = 20;
 
 % Random initial error
 e = randn(N,1);
@@ -167,3 +186,15 @@ xlabel('Iteration');
 ylabel('||e_j||_2');
 title('Error convergence');
 grid on;
+
+%% ------------------------------------------------------------------------
+% 5. Check monotonic decrease explicitly
+% -------------------------------------------------------------------------
+
+is_monotonic = all(diff(error_norm) <= 0);
+
+if is_monotonic
+    fprintf('=> Error decreases monotonically\n');
+else
+    fprintf('=> Error is NOT monotonically decreasing\n');
+end
