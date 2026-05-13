@@ -132,7 +132,7 @@ exportgraphics(fig, "Exports/bode_convergence.pdf", "ContentType", "vector", "Ba
 
 %% 1.f
 fN = fs/2;                                                                  % Nyquist frequency
-fC = 400 / (2*pi);                                                          % Cut-off frequency
+fC = 200 / (2*pi);                                                          % Cut-off frequency
 n = [4];                                                                    % Order Q-filter
 
 [Qb,Qa] = butter(n,fC/fN);
