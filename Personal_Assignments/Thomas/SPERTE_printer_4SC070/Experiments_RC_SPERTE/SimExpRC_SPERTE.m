@@ -2,19 +2,19 @@
 clearvars -except p
 close all; clc;
 
-if SPERTE_Ping_Target('Verbose', false)
-    p = SPERTE_Find_Pi;
-else
-    errordlg("Pi is not reachable! check your connection and try again!");
-    return;
-end
+% if SPERTE_Ping_Target('Verbose', false)
+%     p = SPERTE_Find_Pi;
+% else
+%     errordlg("Pi is not reachable! check your connection and try again!");
+%     return;
+% end
 
 %% RC settings
-N_trial = 20;       % number of disturbance periods. Max 20
+N_trial = 10;       % number of disturbance periods. Max 20
 N_RC_activate = 5;  % RC is activated after N_RC_activate periods
 
-% method = 'simulation';      % select 'simulation' or 'experiment'
-method = 'experiment';
+method = 'simulation';      % select 'simulation' or 'experiment'
+% method = 'experiment';
 
 %Load trajectory
 load('trajectory_RC.mat');
@@ -122,6 +122,9 @@ for j=1:2
     end
     plot_PSD(t_j,r_j,y_j,j-1,3);
 end
+
+%% Save results 
+save('history.mat', 'expdata', "N_trial", "N_RC_activate");
 
 %% Helper functions
 function stopped = is_model_stopped(modelname)

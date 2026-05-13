@@ -25,11 +25,17 @@ Gfrd = frd(Gfrf.frf,Gfrf.freq*2*pi,Ts);
 
 %% 1.a
 % Continuous or discrete? open G, it will say discrete time model
-G
+if G.Ts == 0
+    frpintf('System is Continuous, ');
+else
+    fprintf('System is Discrete, ');
+end
 
 % sampling f? given above fs = 1000;
+fprintf("fs = %d, ", fs)
 
 % Nyquist f? fs/2 = 500
+fprintf("fn = %d, ", fs/2)
 
 % collocated or collocated? plot the bode plot
 % it is non-collocated because -4 slope after resonance, it is a mass spring
@@ -46,12 +52,14 @@ legend('Plant G(z)', 'Controller C(z)', 'Location', 'southwest');
 exportgraphics(h, 'Exports/Bode_G_C.pdf', 'ContentType', 'vector');
 
 % model order? see dimention of A, it is 7
+fprintf("G order = %d\n", order(G))
 
 % model stable? no, double integrator means unstable
-abs(eig(G.A))
+lambda_G = abs(eig(G.A))
 
 % controller stable? 
-abs(eig(C))
+fprintf("C order = %d\n", order(C))
+lambda_C = abs(eig(C))
 
 % Closed loop stable?
 L_loop = G * C;  
@@ -60,188 +68,96 @@ xlim([-2 1]); ylim([-2 2]);
 title('')
 exportgraphics(fig2, 'Exports/Nyquist.pdf', 'ContentType', 'vector')
 
-%% Bode plots of system
-           % Open-loop transfer function
-S = feedback(1, L_loop); % Using feedback function
+%% 1.c. compute mass feedforward
+omega_massline = 100;
+G_mag = abs(squeeze(freqresp(Gfrd, omega_massline)))
+m = 1 / (G_mag*omega_massline^2)
+
+%% 1.d.
+% Define closed loop system
+S = feedback(1, L_loop); 
 GS = feedback(G, C);
-figure;
-% Plot S with a solid blue line
-bode(S, 'b'); 
-hold on;
-bode(GS, 'r');
 
-grid on;
-title('Sensitivity Function S');
-legend('S','GS')
-
-%% Iterative Learning Controller design.
-% Your code here ...
-
-GS_frd = feedback(Gfrd, C);
-
+% Compute stable inverse of GS to find L
 z = tf('z',Ts);
 [~,Lc,phd] = stable_inv(GS,0,Ts);                                           % Retrieve causal Lc
 L = z^phd*Lc;    
 
-figure;
-bode(GS);
-hold on;
-bode(L);
-% Learning filter L
+% Generate the Bode plot
+figWidth = 15; 
+figHeight = 12; 
 
+fig = figure('Units', 'centimeters', 'Position', [10, 10, figWidth, figHeight]);
+
+
+bode(GS, 'b'); % Blue for Plant
+hold on;
+bode(L, 'r'); % Red dashed for Open Loop
+grid on;
+
+% Clean up the internal MATLAB Bode styling
+% This handles fonts and LaTeX for all labels and axes
+set(findall(fig, 'Type', 'line'), 'LineWidth', 1.5);
+set(findall(fig, 'Type', 'text'), 'Interpreter', 'latex', 'FontSize', 11);
+set(findall(fig, 'Type', 'axes'), 'TickLabelInterpreter', 'latex', 'FontSize', 10);
+
+% Add Legend
+lgd = legend('$GS(z)$', '$L(z)$', 'Location', 'southwest');
+set(lgd, 'Interpreter', 'latex');
+% Export
+if ~exist('Exports', 'dir'), mkdir('Exports'); end
+exportgraphics(fig, "Exports/bode_L_GS.pdf", "ContentType", "vector", "BackgroundColor", "none")
+
+%% 1.e.
+% compute FRF based GS
+GS_frd = feedback(Gfrd, C);
+% Plot mag of (1 - GSL) for both parametric and FRF version of GS
+fig = figure('Units', 'centimeters', 'Position', [10, 10, figWidth, figHeight]);
+bodemag(1 - GS*L); hold on;
+bodemag(1 - GS_frd*L);
+yline(1, "k--", "LineWidth", 1.5);
+grid on;
+% Clean up the internal MATLAB Bode styling
+% This handles fonts and LaTeX for all labels and axes
+set(findall(fig, 'Type', 'line'), 'LineWidth', 1.5);
+set(findall(fig, 'Type', 'text'), 'Interpreter', 'latex', 'FontSize', 11);
+set(findall(fig, 'Type', 'axes'), 'TickLabelInterpreter', 'latex', 'FontSize', 10);
+
+% Add Legend
+lgd = legend('$(1 - GSL)$ parametric', '$(1 - GSL)$ FRF', 'Location', 'southwest');
+set(lgd, 'Interpreter', 'latex');
+% Export
+if ~exist('Exports', 'dir'), mkdir('Exports'); end
+exportgraphics(fig, "Exports/bode_convergence.pdf", "ContentType", "vector", "BackgroundColor", "none")
+
+%% 1.f
 fN = fs/2;                                                                  % Nyquist frequency
-fC = [50];                                                                    % Cut-off frequency
-n = [4];                                                                     % Order Q-filter
+fC = 400 / (2*pi);                                                          % Cut-off frequency
+n = [4];                                                                    % Order Q-filter
 
 [Qb,Qa] = butter(n,fC/fN);
-Q = tf(Qb,Qa,Ts);    
+Q = tf(Qb,Qa,Ts); 
 
-% %% Own system analysis 1.a
-% w = Gfrf.freq*2*pi;      % rad/s
-% 
-% opts = bodeoptions;
-% opts.PhaseWrapping = 'on';
-% 
-% figure;
-% hold on;
-% bode(G, w, opts);               % plot model
-% bode(Gfrd, w, opts);            % plot FRF data
-% 
-% %model order
-% fprintf('Model order = %d\n', size(G.A, 2));
-% 
-% %Check stability
-% A_eig = eigs(G.A);
-% fprintf('Absolute Eigenvalues Plant:\n')
-% fprintf('%.4f\n', abs(A_eig))
-% lambda = 1;
-% n = size(G.A, 1);
-% % The number of independent eigenvectors (Geometric Multiplicity)
-% num_blocks = n - rank(G.A - lambda*eye(n));
-% fprintf('Number of independent Jordan blocks for lambda=1: %d\n', num_blocks);
-% 
-% %Check controller stability
-% C_Poles = pole(C);
-% disp('Poles of controller:');
-% disp(abs(C_Poles));
-% 
-% % This computes G*C / (1 + G*C) automatically
-% CL = feedback(G*C, 1); 
-% CL_poles = pole(CL);
-% disp('Closed-loop pole magnitudes:');
-% disp(abs(CL_poles));
-% 
-% 
-% grid on;
-% legend('G (state-space)', 'Gfrf (FRF data)', 'Location','best');
-% title('Frequency Response: G vs. Gfrf');
-% 
-% figure;
-% bode(C)
-% grid on;
-% legend('Controller C');
-% %% Margins
-% % 1. Define the Open-Loop and Closed-Loop systems
-% L = G * C;
-% T = feedback(L, 1);
-% 
-% figure;
-% bode(L)
-% grid on;
-% legend('Open loop 1/(1+L)');
-% 
-% % 2. Calculate Gain Margin (Gm), Phase Margin (Pm), and frequencies
-% % Margin returns Gm as a absolute ratio, not dB.
-% [Gm, Pm, Wcg, Wcp] = margin(L);
-% Gm_dB = 20*log10(Gm);
-% 
-% % Display the open-loop bandwidth
-% if Wcp > 0
-%     fprintf('Open-Loop Bandwidth (Gain Crossover): %.4f rad/s\n', Wcp);
-% else
-%     fprintf('Open-Loop Bandwidth: System does not cross 0dB.\n');
-% end
-% 
-% % 4. Calculate Modulus Margin (Sm)
-% % This is the inverse of the peak of the Sensitivity Function S = 1/(1+L)
-% S = feedback(1, L); 
-% [max_gain, ~] = norm(S, inf); % Peak magnitude of Sensitivity
-% Sm = 1 / max_gain;
-% 
-% % --- Display Results ---
-% fprintf('\n--- Control System Analysis ---\n');
-% fprintf('Bandwidth:      %.4f rad/s\n', Wcp);
-% fprintf('Gain Margin:    %.4f dB (at %.4f rad/s)\n', Gm_dB, Wcg);
-% fprintf('Phase Margin:   %.4f deg (at %.4f rad/s)\n', Pm, Wcp);
-% fprintf('Modulus Margin: %.4f\n', Sm);
-% 
-% 
-% 
-% %% estimate mass
-% %Calculate m
-% w = 1;
-% gain = abs(freqresp(G,w));
-% m = 1/(gain*w^2);
-% 
-% fprintf('Estimated mass m=%.4f[Kg]\n',m);
-
-%% Plot ILC Convergence against FRF Data
-f_vec = Gfrf.freq;          % Frequencies from your measurement data [Hz]
-w_vec = f_vec * 2 * pi;     % [rad/s]
-
-% 1. Compute the "True" Closed Loop using the FRF data
-% This handles the (G*C)/(1+G*C) math for FRD objects properly
-S_true = feedback(1,Gfrd*C);
-GS_true = Gfrd * S_true;
-
-Convergence_system = 1 - (Gfrd * S_true * L);
-
-figure;
-% Use bodemag to plot the magnitude
-bodemag(Convergence_system, 'b'); 
-hold on;
-% 2. Define the frequency range (Starting at 20 Hz due to poor SNR)
-f_min = 0.1; 
-f_max = fs/2;
-w_range = [f_min, f_max] * 2 * pi; % Convert to rad/s
-
-% 3. Plot the 0 dB Stability Limit across the valid range
-line(w_range, [0 0], 'Color', 'r', 'LineStyle', '--', 'LineWidth', 1.5);
-
-% 4. Apply the x-axis limits
-% This avoids the log(0) issue and hides the noisy <20Hz data
-xlim(w_range); 
-
+% Plot mag of (1 - GSL) for FRF version of GS and Q filter and combo
+fig = figure('Units', 'centimeters', 'Position', [10, 10, figWidth, figHeight]);
+bodemag(1 - GS_frd*L); hold on;
+bodemag(Q*(1 - GS_frd*L));
+bodemag(Q)
+yline(1, "k--", "LineWidth", 1.5, 'HandleVisibility', 'off');
 grid on;
-title('ILC Convergence Magnitude (Valid > 20 Hz)');
-legend('Convergence Response', '0 dB Limit');
-%% Plot ILC Convergence against State-Space Model (Ideal Case)
-% 1. Define the ideal convergence system object
-% Since GS and L are LTI objects, we can perform direct subtraction
-Convergence_model = 1 - (GS * L);
+ylim([-100 60])
+% Clean up the internal MATLAB Bode styling
+% This handles fonts and LaTeX for all labels and axes
+set(findall(fig, 'Type', 'line'), 'LineWidth', 1.5);
+set(findall(fig, 'Type', 'text'), 'Interpreter', 'latex', 'FontSize', 11);
+set(findall(fig, 'Type', 'axes'), 'TickLabelInterpreter', 'latex', 'FontSize', 10);
 
-% 2. Create the Plot
-figure;
-% Plot magnitude in black ('k') as per original style
-bodemag(Convergence_model, 'k'); 
-hold on;
-
-% 3. Define the valid frequency range (20 Hz to Nyquist)
-% We avoid 0 Hz due to logarithmic scaling limits
-f_min = 20; 
-f_max = fs/2;
-w_range = [f_min, f_max] * 2 * pi; % [rad/s]
-
-% 4. Plot the 0 dB Stability Limit
-line(w_range, [0 0], 'Color', 'r', 'LineStyle', '--', 'LineWidth', 1.5);
-
-% 5. Formatting and SNR Constraint
-xlim(w_range);
-grid on;
-
-% Note: bodemag handles ylabel (Magnitude dB) and x-scale automatically
-title('|1 - G_{model}SL| (Ideal Model-Based Convergence)');
-legend('Model Response', '0 dB Limit', 'Location', 'southwest');
+% Add Legend
+lgd = legend('$(1 - GSL)$', '$Q(1 - GSL)$', '$Q$', 'Location', 'southwest');
+set(lgd, 'Interpreter', 'latex');
+% Export
+if ~exist('Exports', 'dir'), mkdir('Exports'); end
+exportgraphics(fig, "Exports/bode_Q.pdf", "ContentType", "vector", "BackgroundColor", "none")
 
 %% 3. Robust Convergence Analysis (Comparison Plot)
 % Define the systems
