@@ -77,6 +77,7 @@ M = 100;                                                                    % de
 
 num = fir1(M,fC/fn);        % create low-pass FIR filter coefficients
 Q = tf(num,1,Ts);           % create filter
+Q_single = Q;
 Q = Q*Q';                   % use Q'*Q for zero phase shift
 Q = Q/freqresp(Q,0)^2;      % scale DC gain (gain at omega=0) to 1
 
@@ -93,9 +94,9 @@ title("Effect of Q filter on 1-TL")
 
 %Check Q and Q
 opts = bodeoptions;
-opts.PhaseWrapping = 'on';
+opts.PhaseMatching = 'on';
 figure;
-bode(Q, conj(Q)*Q, opts);
+bode(Q_single, Q, opts);
 legend("Q", "Q^{*}Q")
 title("Q filter")
 %% Make required plots to validate your RC design!
