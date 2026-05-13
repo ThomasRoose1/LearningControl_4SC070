@@ -24,10 +24,27 @@ C = minreal(shapeit_data.C_tf_z);
 Gfrd = frd(Gfrf.frf,Gfrf.freq*2*pi,Ts);
 
 %% Comparison Plot: Defined S vs. Manual Calculation
-L_loop = G * C;             % Open-loop transfer function
-S_manual = 1 / (1 + L_loop); % Manual calculation
-S_func = feedback(1, L_loop); % Using feedback function
+% L_loop = G * C;             % Open-loop transfer function
+% S_manual = 1 / (1 + L_loop); % Manual calculation
+% S_func = feedback(1, L_loop); % Using feedback function
+% 
+% figure;
+% % Plot S_func with a solid blue line
+% bode(S_func, 'b'); 
+% hold on;
+% % Plot S_manual with a dashed red line (to see if it overlaps)
+% bode(S_manual, 'r--'); 
+% 
+% grid on;
+% legend('S = feedback(1, G*C)', 'S = 1/(1+G*C)');
+% title('Sensitivity Function S: Verification');
+% 
+% figure; hold on;
+% bode(G*S_func);
+% bode(G*S_manual)
+% legend('feedback(1,G*C)','1/(1+G*C)')
 
+<<<<<<< Updated upstream
 figure;
 % Plot S_func with a solid blue line
 bode(S_func, 'b'); 
@@ -74,6 +91,9 @@ Q = tf(Qb,Qa,Ts);
 
 
 % %% Own system analysis 1.a
+=======
+%% Own system analysis 1.a: all stability checks
+>>>>>>> Stashed changes
 % w = Gfrf.freq*2*pi;      % rad/s
 % 
 % opts = bodeoptions;
@@ -117,7 +137,8 @@ Q = tf(Qb,Qa,Ts);
 % bode(C)
 % grid on;
 % legend('Controller C');
-% %% Margins
+
+%% Margins
 % % 1. Define the Open-Loop and Closed-Loop systems
 % L = G * C;
 % T = feedback(L, 1);
@@ -125,7 +146,7 @@ Q = tf(Qb,Qa,Ts);
 % figure;
 % bode(L)
 % grid on;
-% legend('Open loop 1/(1+L)');
+% legend('Open loop L)');
 % 
 % % 2. Calculate Gain Margin (Gm), Phase Margin (Pm), and frequencies
 % % Margin returns Gm as a absolute ratio, not dB.
@@ -151,16 +172,49 @@ Q = tf(Qb,Qa,Ts);
 % fprintf('Gain Margin:    %.4f dB (at %.4f rad/s)\n', Gm_dB, Wcg);
 % fprintf('Phase Margin:   %.4f deg (at %.4f rad/s)\n', Pm, Wcp);
 % fprintf('Modulus Margin: %.4f\n', Sm);
-% 
-% 
-% 
-% %% estimate mass
-% %Calculate m
-% w = 1;
-% gain = abs(freqresp(G,w));
-% m = 1/(gain*w^2);
-% 
-% fprintf('Estimated mass m=%.4f[Kg]\n',m);
+
+
+
+%% estimate mass
+%Calculate m
+w = 1;
+gain = abs(freqresp(G,w));
+m = 1/(gain*w^2);
+
+fprintf('Estimated mass m=%.4f[Kg]\n',m);
+
+%% Iterative Learning Controller design.
+% Your code here ...
+% S = feedback(1, G*C);
+% GS = G * S;
+
+GS = feedback(G, C);
+
+GS_frd = feedback(Gfrd, C);
+
+z = tf('z',Ts);
+[~,Lc,phd] = stable_inv(GS,0,Ts);                                           % Retrieve causal Lc
+L = z^phd*Lc;    
+
+figure;
+bode(GS);
+hold on;
+bode(L);
+bode(Lc,'--');
+
+% Add a legend to identify each system
+legend('Original Plant (GS)', 'non causal (L)', 'causal (Lc)');
+grid on; % Recommended for reading margins
+% Learning filter L
+
+fN = fs/2;                                                                  % Nyquist frequency
+fC = [50];                                                                    % Cut-off frequency
+n = [4];                                                                     % Order Q-filter
+
+[Qb,Qa] = butter(n,fC/fN);
+Q = tf(Qb,Qa,Ts);    
+
+
 
 
 %% Make required plots to verify your learning filter design!
