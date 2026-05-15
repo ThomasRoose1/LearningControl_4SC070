@@ -23,9 +23,14 @@ m = 0.091; %tune mass parameter
 % f_jplus1 = m*r.a;
 % f_jplus1 = f_j;
 
+% [Qnum, Qden] = tfdata(Q_lifted, 'v')
+
 % learning feedforward
 alpha = 1;                            
-f_jplus1 = Q_lifted * f_j + alpha * L_lifted * e_j;
+e_filt = L_lifted * e_j;
+% f_jplus1 = filtfilt(Qnum,Qden,f_j + alpha*e_filt);
+f_jplus1 = Q_lifted * f_j + alpha* e_filt;
+
 
 % set last samples of f_jplus1 to zero
 f_jplus1(end-50:end) = 0;

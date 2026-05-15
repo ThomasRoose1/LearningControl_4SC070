@@ -3,7 +3,7 @@ clear;
 close all;
 
 % data formatting
-file_names = ["data_1h_alpha0p2.mat", "data_1h_alpha0p5.mat", "data_1h_alpha1.mat"];
+file_names = ["data_2b_alpha0p2.mat", "data_2b_alpha0p5.mat", "data_2b_alpha1.mat"];
 alpha_values = [0.2, 0.5, 1];
 
 % find length of data and time scale
@@ -57,4 +57,6 @@ lgd = legend(legendLabels, 'Interpreter', 'latex', 'Location', 'northeast');
 
 % 5. Export
 if ~exist('Figures', 'dir'), mkdir('Figures'); end
-exportgraphics(fig, "Figures/plot_1h.pdf", "ContentType", "vector")
+exportgraphics(fig, "Figures/plot_2b_alpha.pdf", "ContentType", "vector")
+
+

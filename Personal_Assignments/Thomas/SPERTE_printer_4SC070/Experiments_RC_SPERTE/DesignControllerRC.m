@@ -40,7 +40,7 @@ T = minreal(T);
 T = ss(T);
 T = minreal(T);
 [a,b,c,d,p_L]=zpetc(T.a,T.b,T.c,T.d,1);
-alpha = 1;
+alpha = 0.5;
 L_c = alpha * ss(a,b,c,d,Ts);    % Causal part
 z = tf('z',Ts);
 L = z^p_L*L_c; 
@@ -105,12 +105,13 @@ if ~exist('Exports', 'dir'), mkdir('Exports'); end
 exportgraphics(fig, "Exports/bode_convergence.pdf", "ContentType", "vector", "BackgroundColor", "none");
 
 %% c
-fC = 10;                                                                    % desired cut-off frequency
+fC = 80;                                                                    % desired cut-off frequency
 fn = 1/(2*Ts);                                                              % Nyquist frequency
 M = 50;                                                                     % desired order of low-pass FIR filter
 
 num = fir1(M,fC/fn);        % create low-pass FIR filter coefficients
 Q = tf(num,1,Ts);           % create filter
+Q_single = Q;
 Q = Q*Q';                   % use Q'*Q for zero phase shift
 Q = Q/freqresp(Q,0)^2;      % scale DC gain (gain at omega=0) to 1
 
@@ -149,7 +150,7 @@ opts.PhaseMatching = 'on';     % Ensures phase starts near 0 if applicable
 
 % Generate the plot using the options
 % Note: The 'opts' must be the last argument
-bode(Q, 'b', Q*Q', 'r--', opts); 
+bode(Q_single, 'b', Q, 'r--', opts); 
 
 grid on; 
 title('');

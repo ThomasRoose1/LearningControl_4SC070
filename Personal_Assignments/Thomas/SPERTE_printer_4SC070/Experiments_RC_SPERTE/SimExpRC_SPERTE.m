@@ -2,19 +2,19 @@
 clearvars -except p
 close all; clc;
 
-% if SPERTE_Ping_Target('Verbose', false)
-%     p = SPERTE_Find_Pi;
-% else
-%     errordlg("Pi is not reachable! check your connection and try again!");
-%     return;
-% end
+if SPERTE_Ping_Target('Verbose', false)
+    p = SPERTE_Find_Pi;
+else
+    errordlg("Pi is not reachable! check your connection and try again!");
+    return;
+end
 
 %% RC settings
-N_trial = 10;       % number of disturbance periods. Max 20
+N_trial = 50;       % number of disturbance periods. Max 20
 N_RC_activate = 5;  % RC is activated after N_RC_activate periods
 
-method = 'simulation';      % select 'simulation' or 'experiment'
-% method = 'experiment';
+% method = 'simulation';      % select 'simulation' or 'experiment'
+method = 'experiment';
 
 %Load trajectory
 load('trajectory_RC.mat');
