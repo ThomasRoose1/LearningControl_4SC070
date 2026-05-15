@@ -2,7 +2,7 @@
 ## Makefile generated for component 'SPERTE_printer'. 
 ## 
 ## Makefile     : SPERTE_printer.mk
-## Generated on : Tue Apr 28 09:28:22 2026
+## Generated on : Wed May 13 09:14:45 2026
 ## Final product: $(RELATIVE_PATH_TO_ANCHOR)/SPERTE_printer.elf
 ## Product type : executable
 ## 
@@ -21,7 +21,7 @@ MAKEFILE                  = SPERTE_printer.mk
 MATLAB_ROOT               = $(MATLAB_WORKSPACE)/C/Program_Files/MATLAB/R2025b
 MATLAB_BIN                = $(MATLAB_WORKSPACE)/C/Program_Files/MATLAB/R2025b/bin
 MATLAB_ARCH_BIN           = $(MATLAB_BIN)/win64
-START_DIR                 = $(MATLAB_WORKSPACE)/C/git/LearningControl_4SC070/Personal_Assignments/Lars/SPERTE_printer_4SC070/Experiments_ILC_SPERTE
+START_DIR                 = $(MATLAB_WORKSPACE)/C/git/LearningControl_4SC070/Personal_Assignments/Thomas/SPERTE_printer_4SC070/Experiments_ILC_SPERTE
 SOLVER                    = 
 SOLVER_OBJ                = 
 CLASSIC_INTERFACE         = 0

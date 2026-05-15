@@ -1,0 +1,22 @@
+%% Learning control Exercise 6 
+clear; close all; clc; 
+
+%% Given
+J = 1;
+N = 1;
+Q = -0.8;
+L = -0.4;
+r = 1;
+iter = 20;
+
+%% Perform iterations
+
+for j = 1:iter
+    % Compute next error based on convolution matrix and input
+    e(j) = r - J*f(j);
+    
+    % Compute next feedforward sig
+    f(j+1) = Q*f(j) + L*e(j);
+
+
+end

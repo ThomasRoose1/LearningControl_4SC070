@@ -4,7 +4,7 @@ close all; clc;
 Ts = 1/1000;
 
 % Number of trials.
-N_trial = 2;
+N_trial = 5;
 
 % Load trajectory.
 load('trajectory.mat');
@@ -65,6 +65,6 @@ for trial = 1:N_trial
     PlotTrialData;
     
 end
-
+save('history.mat', "history")
 % End.
 disp('Done!');
