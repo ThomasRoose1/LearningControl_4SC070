@@ -7,50 +7,72 @@ clear; clc; close all;
 load('Gantry_FRF_centralized.mat');
 
 %% bode plots of frd objects
-figure('Name', 'non parametric FRF')
+fig = figure('Name', 'Non-parametric FRF Grid');
 
-% Create a 2x2 layout where each cell houses its own sub-layout (Mag + Phase)
-main_layout = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+% We use a single 4x2 layout: 
+% Column 1 holds Input 1 (Top 2 rows = Output 1, Bottom 2 rows = Output 2)
+% Column 2 holds Input 2 (Top 2 rows = Output 1, Bottom 2 rows = Output 2)
+main_layout = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+% Pre-allocate an array to link x-axes later
+all_axes = gobjects(1, 8);
+ax_idx = 1;
 
 % Loop through the 2x2 MIMO system
 for out_idx = 1:2
-    for in_idx = 1:2
-        
-        % Select the correct tile in the 2x2 grid
-        nexttile(main_layout);
-        
+    for in_idx = 1:2   
         % Extract the specific SISO channel data
         [mag, phase, w] = bode(P_carriage_left(out_idx, in_idx));
-        
-        % Squeeze out the singleton dimensions MATLAB generates for MIMO data
+
+        % Squeeze out the singleton dimensions
         mag = squeeze(mag);
         phase = squeeze(phase);
         w = squeeze(w);
+
+        % Convert frequency from rad/s to Hz
+        f_hz = w / (2 * pi);
         
-        % Create an inner 2x1 layout inside the current 2x2 cell
-        % This keeps Magnitude stacked directly on top of Phase
-        inner_layout = tiledlayout(main_layout, 2, 1);
-        inner_layout.Layout.Tile = (out_idx-1)*2 + in_idx; 
-        
+        % Wrap the phase tightly between -180 and 180 degrees
+        phase_wrapped = mod(phase + 180, 360) - 180;
+
+        % Calculate the exact tile indices for Mag and Phase in our 4x2 layout
+        % Channel (1,1) -> Tiles 1 and 3
+        % Channel (1,2) -> Tiles 2 and 4
+        % Channel (2,1) -> Tiles 5 and 7
+        % Channel (2,2) -> Tiles 6 and 8
+        mag_tile   = (out_idx - 1) * 4 + in_idx;
+        phase_tile = mag_tile + 2;
+
         % --- Top Subplot: Magnitude ---
-        ax_mag = nexttile(inner_layout);
-        semilogx(w, 20*log10(mag), 'LineWidth', 1.5, 'Color', '#0072BD');
+        ax_mag = nexttile(main_layout, mag_tile);
+        all_axes(ax_idx) = ax_mag;
+        ax_idx = ax_idx + 1;
+        semilogx(f_hz, 20*log10(mag), 'LineWidth', 1.5, 'Color', '#0072BD');
         grid on;
-        ylabel('Mag (dB)');
-        title(sprintf('Cell (%d,%d)', out_idx, in_idx)); % Temporary title
-        set(ax_mag, 'XTickLabel', []); % Hide X-axis labels for the top plot
-        
+        ylabel(sprintf('|G_{%d%d}| (dB)', out_idx, in_idx)); % Updated unique label
+        set(ax_mag, 'XTickLabel', []); % Completely hide X-axis numbers
+
         % --- Bottom Subplot: Phase ---
-        ax_phase = nexttile(inner_layout);
-        semilogx(w, phase, 'LineWidth', 1.5, 'Color', '#D95319');
+        ax_phase = nexttile(main_layout, phase_tile);
+        all_axes(ax_idx) = ax_phase;
+        ax_idx = ax_idx + 1;
+        semilogx(f_hz, phase_wrapped, 'LineWidth', 1.5, 'Color', '#D95319');
         grid on;
-        ylabel('Phase (deg)');
-        xlabel('Frequency (rad/s)');
+        ylabel(sprintf('\\angle G_{%d%d} (deg)', out_idx, in_idx)); % Updated unique label
         
-        % Link the x-axes of magnitude and phase so zooming aligns them
-        linkaxes([ax_mag, ax_phase], 'x');
+        % Only show the X-label on the absolute bottom row of the figure
+        if out_idx == 2
+            xlabel('Frequency (Hz)');
+        else
+            set(ax_phase, 'XTickLabel', []); 
+        end
     end
 end
+% Link all x-axes across the entire figure so zooming/panning stays synchronized
+linkaxes(all_axes, 'x')
+
+% export
+exportgraphics(fig, 'Figures/Bodeplot_original.jpeg', 'Resolution', 300);
 
 %% Compute RGA
 %Extract FRF data dimensions and points
@@ -92,12 +114,12 @@ for out_idx = 1:2
         rga_channel = squeeze(real(RGA_data(out_idx, in_idx, :)));
         
         % Plot the real part of the RGA element
-        loglog(freqs, abs(rga_channel), 'LineWidth', 2, 'Color', '#7E2F8E');
+        loglog(freqs, abs(rga_channel), 'LineWidth', 2);
         grid on;
         
         % Labeling and formatting
-        ylabel(sprintf('Real(\\lambda_{%d%d})', out_idx, in_idx));
-        title(sprintf('RGA Element \\lambda_{%d%d}', out_idx, in_idx));
+        ylabel(sprintf('|\\lambda_{%d%d}|', out_idx, in_idx));
+        % title(sprintf('RGA Element \\lambda_{%d%d}', out_idx, in_idx));
         
         % Only apply x-labels to the bottom row plots for a cleaner look
         if out_idx == 2
@@ -105,6 +127,9 @@ for out_idx = 1:2
         else
             set(rga_axes(plot_idx), 'XTickLabel', []);
         end
+
+        % add yline
+        if out_idx == in
         
         plot_idx = plot_idx + 1;
     end
