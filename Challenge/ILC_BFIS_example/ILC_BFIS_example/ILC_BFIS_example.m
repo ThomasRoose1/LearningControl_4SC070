@@ -10,7 +10,8 @@
 clear variables
 
 %% Settings
-system = '4th_order';                                                       % Run two different systems: arizona_x / 4th_order
+system = 'arizona_x';                                                       % Run two different systems: arizona_x / 4th_order
+ref = 'coupling_analysis';
 
 polynomial = 0;                                                             % if 1, Run ffw only, i.e., Cy=1
 
@@ -50,6 +51,16 @@ switch system
         Cfb = c2d(load('xController.mat').Cx_CT,Ts,'Tustin');
         cd ..\..
 
+    case 'arizona_new'
+        % Load the Arizona x models
+        cd Arizona_models_new\Models\
+        P = ((load('P_centralized.mat').Pz));
+        Ts = P.Ts;
+        z = tf('z',Ts);
+        cd ..\Controllers
+        Cfb = c2d(load('xController.mat').Cx_CT,Ts,'Tustin');
+        cd ..\..
+
     case '4th_order'
         % Load the rational example system
         Ts = 1e-4;
@@ -70,7 +81,7 @@ CS = loops.CSo;
 
 %% Create the reference (these are example references. You receive the reference for the Arizona experiments later.
 % Reference is a fourth order motion profile.
-switch system
+switch ref
     case {'arizona_x'}
         Npad = 500;
         Npad_start = 10;
@@ -97,6 +108,45 @@ switch system
         N = length(r);
         t = 0:Ts:(N-1)*Ts;
         rendidx = find(t>=tt(end),1);               % Index snap is zero, so reference ends here
+
+    case {'coupling_analysis'}
+    % Define your target frequency range to test tracking bounds
+    freqs = [1, 5, 10, 20, 30, 40, 50, 60, 80, 100, 150, 200]; % Frequencies in Hz
+    cycles_per_freq = 5;                                      % Cycles to track per step
+    amplitude = 0.05;                                         % Reference amplitude
+    
+    % Build the continuous stepping reference profile
+    r = [];
+    for f = freqs
+        t_chunk = 0:Ts:(cycles_per_freq/f);
+        r_chunk = amplitude * sin(2*pi*f*t_chunk)';
+        r = [r; r_chunk(1:end-1)]; % stitch smoothly at zero-crossings
+    end
+    
+    % Padding setup matching your framework structure
+    Npad_start = 50; 
+    Npad = 500;
+    r = [zeros(Npad_start,1); r; zeros(Npad,1)];
+    
+    % Generate analytical derivatives so your basis functions (Psi) map perfectly
+    v = [0; diff(r)/Ts];
+    a = [0; diff(v)/Ts];
+    j = [0; diff(a)/Ts];
+    s = [0; diff(j)/Ts];
+    
+    N = length(r);
+    t = 0:Ts:(N-1)*Ts;
+    
+    % Store index metadata to isolate frequencies during post-processing
+    freq_indices = struct();
+    idx_curr = Npad_start + 1;
+    for i = 1:length(freqs)
+        num_samples = round((cycles_per_freq/freqs(i))/Ts);
+        freq_indices(i).name = freqs(i);
+        freq_indices(i).range = idx_curr : min(idx_curr + num_samples - 1, N);
+        idx_curr = idx_curr + num_samples;
+    end
+    rendidx = Npad_start + 1; % Redefining start index window for evaluation
 end
 
 %% Construct diagonal weighting filters
@@ -209,3 +259,50 @@ subplot(122)
 bodemag(P); hold on
 bodemag(Cy/Cff,'r--')
 legend('$P$','$C\_y / C\_{ff}$','location','northeast','interpreter','latex')
+
+%% Frequency Evaluation Tracking Breakdown Plot
+if strcmp(ref,'coupling_analysis')
+    figure(3); clf;
+    hold on;
+    
+    % Track initial behavior (Trial 1) vs Final learned optimization behavior
+    trials_to_plot = [1, N_trials]; 
+    colors = {'#D95319', '#0072BD'}; % Red-orange for initial, Blue for final
+    markers = {'o-', 's-'};
+    
+    for t_idx = 1:length(trials_to_plot)
+        trial = trials_to_plot(t_idx);
+        max_errors = zeros(length(freqs), 1);
+        
+        for i = 1:length(freqs)
+            % Isolate the specific time-slice belonging to this frequency segment
+            segment_error = e(freq_indices(i).range, trial);
+            
+            % Drop the first cycle of the segment to ignore transient switching shocks
+            samples_per_cycle = round((1/freqs(i))/Ts);
+            settled_error = segment_error(min(samples_per_cycle, length(segment_error)):end);
+            
+            if ~isempty(settled_error)
+                max_errors(i) = max(abs(settled_error));
+            else
+                max_errors(i) = max(abs(segment_error));
+            end
+        end
+        
+        plot(freqs, max_errors, markers{t_idx}, 'Color', colors{t_idx}, ...
+             'LineWidth', 2, 'MarkerSize', 8, ...
+             'DisplayName', sprintf('Trial %d Error', trial));
+    end
+    
+    set(gca, 'XScale', 'log', 'YScale', 'log');
+    grid on; box on;
+    xlabel('Excitation Frequency (Hz)', 'FontSize', 12);
+    ylabel('Max Settled Tracking Error [Magnitude]', 'FontSize', 12);
+    title('Tracking Deterioration Threshold Matrix', 'FontSize', 14);
+    legend('Location', 'NorthWest');
+    
+    % Highlight the structural breakdown bound visually
+    y_limits = ylim;
+    line([1/(2*pi*Ts) 1/(2*pi*Ts)], y_limits, 'Color', 'r', 'LineStyle', '--', ...
+         'LineWidth', 1.5, 'DisplayName', 'Theoretical Nyquist Bound');
+end
