@@ -118,12 +118,12 @@ for out_idx = 1:2
         grid on;
         
         % Labeling and formatting
-        ylabel(sprintf('|\\lambda_{%d%d}|', out_idx, in_idx));
+        ylabel(sprintf('|\\Lambda_{%d%d}|', out_idx, in_idx));
         % title(sprintf('RGA Element \\lambda_{%d%d}', out_idx, in_idx));
         
         % Only apply x-labels to the bottom row plots for a cleaner look
         if out_idx == 2
-            xlabel('Frequency (rad/s)');
+            xlabel('Frequency [Hz]');
         else
             set(rga_axes(plot_idx), 'XTickLabel', []);
         end
@@ -191,12 +191,12 @@ for out_idx = 1:2
         grid on;
         
         % Labeling and formatting
-        ylabel(sprintf('|\\lambda_{%d%d}|', out_idx, in_idx));
+        ylabel(sprintf('|\\Lambda_{%d%d}|', out_idx, in_idx));
         % title(sprintf('RGA Element \\lambda_{%d%d}', out_idx, in_idx));
         
         % Only apply x-labels to the bottom row plots for a cleaner look
         if out_idx == 2
-            xlabel('Frequency (rad/s)');
+            xlabel('Frequency [Hz]');
         else
             set(rga_axes(plot_idx), 'XTickLabel', []);
         end
@@ -242,11 +242,11 @@ for out_idx = 1:2
         grid on;
         
         % Labeling and formatting
-        ylabel(sprintf('|\\lambda_{%d%d}|', out_idx, in_idx));
+        ylabel(sprintf('|\\Lambda_{%d%d}|', out_idx, in_idx));
         
         % Only apply x-labels to the bottom row plots for a cleaner look
         if out_idx == 2
-            xlabel('Frequency (rad/s)');
+            xlabel('Frequency [Hz]');
         else
             set(rga_axes(plot_idx), 'XTickLabel', []);
         end

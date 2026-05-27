@@ -8,11 +8,12 @@
 % receive new models soon.
 
 clear variables
+close all;
 
 %% Settings
-system = '4th_order';                                                       % Run two different systems: arizona_x / 4th_order
+system = 'arizona_x';                                                       % Run two different systems: arizona_x / 4th_order
 
-polynomial = 1;                                                             % if 1, Run ffw only, i.e., Cy=1
+polynomial = 0;                                                             % if 1, Run ffw only, i.e., Cy=1
 
 na = 4;                                                                     % Order input shaper Cy
 nb = 4;                                                                     % Order feedforward Cff
