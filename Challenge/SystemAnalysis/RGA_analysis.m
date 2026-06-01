@@ -30,7 +30,7 @@ for out_idx = 1:2
         w = squeeze(w);
 
         % Convert frequency from rad/s to Hz
-        f_hz = w / (2 * pi);
+        f_hz = w / (2 * pi);  
         
         % Wrap the phase tightly between -180 and 180 degrees
         phase_wrapped = mod(phase + 180, 360) - 180;

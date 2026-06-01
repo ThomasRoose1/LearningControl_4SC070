@@ -210,3 +210,45 @@ subplot(122)
 bodemag(P); hold on
 bodemag(Cy/Cff,'r--')
 legend('$P$','$C\_y / C\_{ff}$','location','northeast','interpreter','latex')
+
+%% 1. Numerically prove mass dominance by checking the parameters
+% Extract the parameters from the FINAL trial (last column of the matrix)
+theta_converged = theta(:, end); 
+
+% The first 'na' parameters belong to the input shaper, 
+% and the next 'nb' belong to the feedforward controller.
+disp('Converged Feedforward Parameters (\theta_ff):');
+theta_ff = theta_converged(na+1 : na+nb); 
+disp(theta_ff);
+
+disp(['Velocity parameter (\theta_1): ', num2str(theta_ff(1))]);
+disp(['Acceleration/Mass parameter (\theta_2): ', num2str(theta_ff(2))]);
+disp(['Jerk parameter (\theta_3): ', num2str(theta_ff(3))]);
+
+%% 2. Visually prove mass dominance by plotting the signal contributions
+figure;
+hold on; grid on;
+
+% Loop through each feedforward basis function, simulate its response 
+% to the reference, and multiply by its CONVERGED learned parameter
+for i = 1:nb
+    % Calculate the individual signal component: f_i = Psi_i(r) * theta_i
+    component_signal = lsim(Psi_ff(i), r, t) * theta_converged(na+i);
+    
+    % Plot it
+    plot(t, component_signal, 'LineWidth', 1.5, ...
+         'DisplayName', ['Derivative Order ' num2str(i)]);
+end
+
+% Plot the total feedforward signal from the FINAL trial for comparison
+plot(t, f(:, end), 'k--', 'LineWidth', 2, 'DisplayName', 'Total Feedforward (f)');
+
+legend('show');
+xlabel('Time [s]');
+ylabel('f');
+title('Individual Basis Function Contributions to Total Feedforward');
+
+% Extract the input shaper parameters (the first 'na' values from the final trial)
+theta_shaper = theta_converged(1:na);
+disp('Converged Input Shaper Parameters (\theta_y):');
+disp(theta_shaper);
