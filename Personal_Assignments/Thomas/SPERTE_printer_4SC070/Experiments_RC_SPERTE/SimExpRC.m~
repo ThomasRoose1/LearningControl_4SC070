@@ -1,0 +1,73 @@
+%SimExpRC   Repetitive Control simulations & experiments.
+clear variables; close all; clc;
+
+%% RC settings
+N_trial = 15;       % number of disturbance periods. Max 20
+N_RC_activate = 5;  % RC is activated after N_RC_activate periods
+
+% method = 'simulation';      % select 'simulation' or 'experiment'
+method = 'experiment';
+
+%Load trajectory
+load('trajectory_RC.mat');
+N = length(r);    % period time [samples]
+
+% Save settings for RC simulations/experiments
+save('Exp_RC_settings.mat','r','N','N_trial','N_RC_activate');
+
+%% Run RC
+   
+switch lower(method)
+    case 'simulation'
+        % Start simulation.
+        sim('PrinterRC_SIM');
+    case 'experiment'
+        % don't forget to build .mdl if you've made any changes
+        rtwbuild('PrinterRC_EXP')
+        % Start experiment.
+        !./PrinterRC_EXP
+    otherwise
+        error('incorrect method assigned!')
+end
+
+% Load and extract trial data.
+load('expdata.dat');
+t = expdata(:,1);
+w = expdata(:,2);
+e = expdata(:,3);
+u = expdata(:,4);
+
+r=repmat(r,N_trial,1);
+y = r-e;
+
+
+%% Plot results.
+%PlotTrialData;
+
+t_j = t(1:N);
+for j = 1:N_trial
+    r_j = r((j-1)*N+1:j*N);
+    y_j = y((j-1)*N+1:j*N);
+%     end
+    perf_plot_4(t_j,r_j,y_j,j-1,1);
+    pause(0.5)
+end
+
+% return
+for j=1:2
+    N_PSD=N_RC_activate-1;    % number of periods over which PSD is computed
+    t_j = t(1:N_PSD*N);
+    r_j = r(1:N_PSD*N);
+    if j == 1
+        % no RC
+%         t_j = t(N*(N_RC_activate-NSD)+1:N*N_RC_activate)-t(N*(N_RC_activate-NSD)+1);
+%         r_j = r(N*(N_RC_activate-NSD)+1:N*N_RC_activate);
+        y_j = y(N*(N_RC_activate-N_PSD)+1:N*N_RC_activate);
+    else
+        % with RC
+%         t_j = t(N*(N_trial-NSD)+1:N*N_trial)-t(N*(N_trial-NSD)+1);
+        r_j = r(N*(N_trial-N_PSD)+1:N*N_trial);
+        y_j = y(N*(N_trial-N_PSD)+1:N*N_trial);
+    end
+    plot_PSD(t_j,r_j,y_j,j-1,2);
+end

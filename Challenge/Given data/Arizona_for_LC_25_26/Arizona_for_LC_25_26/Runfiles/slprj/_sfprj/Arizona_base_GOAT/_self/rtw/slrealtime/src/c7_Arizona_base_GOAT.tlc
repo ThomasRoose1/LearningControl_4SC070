@@ -1,0 +1,124 @@
+%implements "chartSource" "C"
+%function ChartConfig(block, system) void
+  %createrecord chartConfiguration { ...
+          executeAtInitialization  0 ...
+  }
+  %return chartConfiguration
+%endfunction
+%function ChartDataMap(block, system) void
+  %createrecord ChartDataElements {\
+    NumChartData   14 \
+    ChartDataDefaults {\
+      RecordType   "ChartData"\
+      Dimensions   []\
+      IsTestPoint  0\
+    }\
+    ChartData {\
+      Name         "is_active_c7_Arizona_base_GOAT"\
+      Description  "StateIsActive"\
+      SFName       "is_active_c7_Arizona_base_GOAT"\
+      Path         "is_active_c7_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_c7_Arizona_base_GOAT"\
+      Description  "StateActiveChild"\
+      SFName       "is_c7_Arizona_base_GOAT"\
+      Path         "is_c7_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_reset_gantryLeft"\
+      Description  "StateActiveChild"\
+      SFName       "is_reset_gantryLeft"\
+      Path         "MoveToLimitSwitches.reset_gantryLeft.is_reset_gantryLeft"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_reset_gantryLeft"\
+      Description  "StateIsActive"\
+      SFName       "is_active_reset_gantryLeft"\
+      Path         "MoveToLimitSwitches.reset_gantryLeft.is_active_reset_gantryLeft"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_reset_gantryright"\
+      Description  "StateActiveChild"\
+      SFName       "is_reset_gantryright"\
+      Path         "MoveToLimitSwitches.reset_gantryright.is_reset_gantryright"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_reset_gantryright"\
+      Description  "StateIsActive"\
+      SFName       "is_active_reset_gantryright"\
+      Path         "MoveToLimitSwitches.reset_gantryright.is_active_reset_gantryright"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_reset_carriage"\
+      Description  "StateActiveChild"\
+      SFName       "is_reset_carriage"\
+      Path         "MoveToLimitSwitches.reset_carriage.is_reset_carriage"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_reset_carriage"\
+      Description  "StateIsActive"\
+      SFName       "is_active_reset_carriage"\
+      Path         "MoveToLimitSwitches.reset_carriage.is_active_reset_carriage"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "Ts"\
+      Description  "ChartLocal"\
+      SFName       ""\
+      Path         "Ts"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "sfEvent"\
+      Description  "ActiveChartEvent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "temporalCounter_i1"\
+      Description  "TemporalCounter"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "durationCounter_1"\
+      Description  ""\
+      SFName       ""\
+      Path         "MoveToLimitSwitches.reset_gantryLeft.increase_jogspeed"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "durationCounter_1"\
+      Description  ""\
+      SFName       ""\
+      Path         "MoveToLimitSwitches.reset_gantryright.increase_jogspeed"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "durationCounter_1"\
+      Description  ""\
+      SFName       ""\
+      Path         "MoveToLimitSwitches.reset_carriage.increase_jogspeed"\
+      SrcLocation  ""\
+    }\
+  }
+  %return ChartDataElements
+%endfunction

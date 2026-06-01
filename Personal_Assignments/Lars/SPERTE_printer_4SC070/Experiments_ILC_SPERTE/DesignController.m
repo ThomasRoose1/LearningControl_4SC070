@@ -5,17 +5,16 @@ clc;
 
 
 %% Parameters
-fs = 1000;         % sample frequency\\
+fs = 1000;         % sample frequency
 Ts = 1/fs;         % sample time
 N = 4501;          % trial length
-save_switch = 0;   % switch for saving ILC filters: 1 = save, 0 = no save
+save_switch = 1;   % switch for saving ILC filters: 1 = save, 0 = no save
 
 
 %% System model, system frequency response measurement and controller.
 % System model and FRF measurement.
 load('PrinterModel2020.mat');
 G = PrinterModelSS;
-G = minreal(G);
 Gfrf = PrinterModelFRF;
 
 % Feedback controller.
@@ -24,33 +23,52 @@ C = minreal(shapeit_data.C_tf_z);
 
 Gfrd = frd(Gfrf.frf,Gfrf.freq*2*pi,Ts);
 
-%% Comparison Plot: Defined S vs. Manual Calculation
-L_loop = G * C;             % Open-loop transfer function
-S_manual = 1 / (1 + L_loop); % Manual calculation
-S_func = feedback(1, L_loop); % Using feedback function
+%% 1.a
+% Continuous or discrete? open G, it will say discrete time model
+G
 
+% sampling f? given above fs = 1000;
+
+% Nyquist f? fs/2 = 500
+
+% collocated or collocated? plot the bode plot
+% it is non-collocated because -4 slope after resonance, it is a mass spring
+% damper system
+% Combined Bode Plot
+h = figure('Units', 'centimeters', 'Position', [1, 1, 21, 15]); % A4 width-ish
+
+% Generate the plot with both systems
+bode(G, 'b', C, 'r'); 
+grid on; title('');
+legend('Plant G(z)', 'Controller C(z)', 'Location', 'southwest');
+
+% Save as PDF
+exportgraphics(h, 'Exports/Bode_G_C.pdf', 'ContentType', 'vector');
+
+% model order? see dimention of A, it is 7
+
+% model stable? no, double integrator means unstable
+abs(eig(G.A))
+
+% Closed loop stable?
+
+
+%% Bode plots of system
+L_loop = G * C;             % Open-loop transfer function
+S = feedback(1, L_loop); % Using feedback function
+GS = feedback(G, C);
 figure;
-% Plot S_func with a solid blue line
-bode(S_func, 'b'); 
+% Plot S with a solid blue line
+bode(S, 'b'); 
 hold on;
-% Plot S_manual with a dashed red line (to see if it overlaps)
-bode(S_manual, 'r--'); 
+bode(GS, 'r');
 
 grid on;
-legend('S = feedback(1, G*C)', 'S = 1/(1+G*C)');
-title('Sensitivity Function S: Verification');
-
-figure; hold on;
-bode(G*S_func);
-bode(G*S_manual)
-legend('feedback(1,G*C)','1/(1+G*C)')
+title('Sensitivity Function S');
+legend('S','GS')
 
 %% Iterative Learning Controller design.
 % Your code here ...
-% S = feedback(1, G*C);
-% GS = G * S;
-
-GS = feedback(G, C);
 
 GS_frd = feedback(Gfrd, C);
 
@@ -62,11 +80,6 @@ figure;
 bode(GS);
 hold on;
 bode(L);
-bode(Lc,'--');
-
-% Add a legend to identify each system
-legend('Original Plant (GS)', 'non causal (L)', 'causal (Lc)');
-grid on; % Recommended for reading margins
 % Learning filter L
 
 fN = fs/2;                                                                  % Nyquist frequency
@@ -76,103 +89,94 @@ n = [4];                                                                     % O
 [Qb,Qa] = butter(n,fC/fN);
 Q = tf(Qb,Qa,Ts);    
 
-%% Own system analysis 1.a
-w = Gfrf.freq*2*pi;      % rad/s
-
-opts = bodeoptions;
-opts.PhaseWrapping = 'on';
-
-figure;
-hold on;
-bode(G, w, opts);               % plot model
-bode(Gfrd, w, opts);            % plot FRF data
-
-%model order
-fprintf('Model order = %d\n', size(G.A, 2));
-
-%Check stability
-A_eig = eigs(G.A);
-fprintf('Absolute Eigenvalues Plant:\n')
-fprintf('%.4f\n', abs(A_eig))
-lambda = 1;
-n = size(G.A, 1);
-% The number of independent eigenvectors (Geometric Multiplicity)
-num_blocks = n - rank(G.A - lambda*eye(n));
-fprintf('Number of independent Jordan blocks for lambda=1: %d\n', num_blocks);
-
-%Check controller stability
-C_Poles = pole(C);
-disp('Poles of controller:');
-disp(abs(C_Poles));
-
-% This computes G*C / (1 + G*C) automatically
-CL = feedback(G*C, 1); 
-CL_poles = pole(CL);
-disp('Closed-loop pole magnitudes:');
-disp(abs(CL_poles));
-
-L = minreal(G*C);
-figure;
-nyquist(L);
-title("Nyquist of openloop");
-
-figure;
-grid on;
-legend('G (state-space)', 'Gfrf (FRF data)', 'Location','best');
-title('Frequency Response: G vs. Gfrf');
-
-figure;
-bode(C)
-grid on;
-legend('Controller C');
-%% Margins
-% 1. Define the Open-Loop and Closed-Loop systems
-L = G * C;
-T = feedback(L, 1);
-
-figure;
-bode(L)
-grid on;
-legend('Open loop 1/(1+L)');
-
-% 2. Calculate Gain Margin (Gm), Phase Margin (Pm), and frequencies
-% Margin returns Gm as a absolute ratio, not dB.
-[Gm, Pm, Wcg, Wcp] = margin(L);
-Gm_dB = 20*log10(Gm);
-
-% Display the open-loop bandwidth
-if Wcp > 0
-    fprintf('Open-Loop Bandwidth (Gain Crossover): %.4f rad/s\n', Wcp);
-else
-    fprintf('Open-Loop Bandwidth: System does not cross 0dB.\n');
-end
-
-% 4. Calculate Modulus Margin (Sm)
-% This is the inverse of the peak of the Sensitivity Function S = 1/(1+L)
-S = feedback(1, L); 
-[max_gain, ~] = norm(S, inf); % Peak magnitude of Sensitivity
-Sm = 1 / max_gain;
-
-% --- Display Results ---
-fprintf('\n--- Control System Analysis ---\n');
-fprintf('Bandwidth:      %.4f rad/s\n', Wcp);
-fprintf('Gain Margin:    %.4f dB (at %.4f rad/s)\n', Gm_dB, Wcg);
-fprintf('Phase Margin:   %.4f deg (at %.4f rad/s)\n', Pm, Wcp);
-fprintf('Modulus Margin: %.4f\n', Sm);
-
-
-
-%% estimate mass
-%Calculate m
-w = 1;
-gain = abs(freqresp(G,w));
-m = 1/(gain*w^2);
-
-fprintf('Estimated mass m=%.4f[Kg]\n',m);
-
-
-%% Make required plots to verify your learning filter design!
-% Your code here ...
+% %% Own system analysis 1.a
+% w = Gfrf.freq*2*pi;      % rad/s
+% 
+% opts = bodeoptions;
+% opts.PhaseWrapping = 'on';
+% 
+% figure;
+% hold on;
+% bode(G, w, opts);               % plot model
+% bode(Gfrd, w, opts);            % plot FRF data
+% 
+% %model order
+% fprintf('Model order = %d\n', size(G.A, 2));
+% 
+% %Check stability
+% A_eig = eigs(G.A);
+% fprintf('Absolute Eigenvalues Plant:\n')
+% fprintf('%.4f\n', abs(A_eig))
+% lambda = 1;
+% n = size(G.A, 1);
+% % The number of independent eigenvectors (Geometric Multiplicity)
+% num_blocks = n - rank(G.A - lambda*eye(n));
+% fprintf('Number of independent Jordan blocks for lambda=1: %d\n', num_blocks);
+% 
+% %Check controller stability
+% C_Poles = pole(C);
+% disp('Poles of controller:');
+% disp(abs(C_Poles));
+% 
+% % This computes G*C / (1 + G*C) automatically
+% CL = feedback(G*C, 1); 
+% CL_poles = pole(CL);
+% disp('Closed-loop pole magnitudes:');
+% disp(abs(CL_poles));
+% 
+% 
+% grid on;
+% legend('G (state-space)', 'Gfrf (FRF data)', 'Location','best');
+% title('Frequency Response: G vs. Gfrf');
+% 
+% figure;
+% bode(C)
+% grid on;
+% legend('Controller C');
+% %% Margins
+% % 1. Define the Open-Loop and Closed-Loop systems
+% L = G * C;
+% T = feedback(L, 1);
+% 
+% figure;
+% bode(L)
+% grid on;
+% legend('Open loop 1/(1+L)');
+% 
+% % 2. Calculate Gain Margin (Gm), Phase Margin (Pm), and frequencies
+% % Margin returns Gm as a absolute ratio, not dB.
+% [Gm, Pm, Wcg, Wcp] = margin(L);
+% Gm_dB = 20*log10(Gm);
+% 
+% % Display the open-loop bandwidth
+% if Wcp > 0
+%     fprintf('Open-Loop Bandwidth (Gain Crossover): %.4f rad/s\n', Wcp);
+% else
+%     fprintf('Open-Loop Bandwidth: System does not cross 0dB.\n');
+% end
+% 
+% % 4. Calculate Modulus Margin (Sm)
+% % This is the inverse of the peak of the Sensitivity Function S = 1/(1+L)
+% S = feedback(1, L); 
+% [max_gain, ~] = norm(S, inf); % Peak magnitude of Sensitivity
+% Sm = 1 / max_gain;
+% 
+% % --- Display Results ---
+% fprintf('\n--- Control System Analysis ---\n');
+% fprintf('Bandwidth:      %.4f rad/s\n', Wcp);
+% fprintf('Gain Margin:    %.4f dB (at %.4f rad/s)\n', Gm_dB, Wcg);
+% fprintf('Phase Margin:   %.4f deg (at %.4f rad/s)\n', Pm, Wcp);
+% fprintf('Modulus Margin: %.4f\n', Sm);
+% 
+% 
+% 
+% %% estimate mass
+% %Calculate m
+% w = 1;
+% gain = abs(freqresp(G,w));
+% m = 1/(gain*w^2);
+% 
+% fprintf('Estimated mass m=%.4f[Kg]\n',m);
 
 %% Plot ILC Convergence against FRF Data
 f_vec = Gfrf.freq;          % Frequencies from your measurement data [Hz]
