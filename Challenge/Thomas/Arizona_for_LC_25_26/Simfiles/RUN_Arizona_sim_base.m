@@ -24,21 +24,27 @@ addpath(genpath('../ILC_updates'))
 Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
-optFFmethod           = 'ILC_BF_IS';     
+optFFmethod           = 'ILC_BF_IS';  
+% optFFmethod           = 'ILC';  
 optFFdirections       = [0,1,0];    
 
 %% Generate reference
 % [xref, yref, phiref, t] = reference_square(Ts);
 %[xref, yref, phiref, t] = reference_triangle(Ts);
 % [xref, yref, phiref, t] = reference_rounded_rectangle(Ts);
-load('test_reference.mat')
-N = 13000;
+% load('test_reference.mat')
+cd ..
+% load("References\Reference_X_slow.mat")
+load("References\small_step_slow_2_1.mat")
+xref = xref_pos;
+cd Simfiles
+N = 5/Ts;
 [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
-xref = xref*0;
+% xref = xr ef*0;
 t = t';
 % traj_number = 1;    
 % % size_i = length(yRefs{traj_number});
-% size_i = 1;
+% size_i = 1;   
 % times = linspace(0,size_i/Ts,size_i)';
 % xref = zeros(size_i,1);
 % yref = yRefs{:,traj_number};
@@ -69,25 +75,19 @@ Pphi = Pphi_CT;
 
 % Interconnection.
 SPy = minreal(feedback(Py_DT, Cy_DT));
-SPx = minreal(feedback(Px, Cx));
-SPphi = minreal(feedback(Pphi, Cphi));
-SP = SPy;
+SPx = minreal(feedback(Px_DT, Cx_DT));
+SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
+SP = SPx;
    
 
 % Stack for MIMO
-C_zpk = blkdiag(Cy, Cx, Cphi);
-P_zpk = blkdiag(Py, Px, Pphi);
+C_zpk = blkdiag(Cy_DT, Cx_DT, Cphi_DT);
+P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
 
 %% Interconnection.
 [S,PS] = ClosedLoopTransfers(P_zpk,C_zpk);
 
-% Force conversion to discrete-time matching our specific Ts
-% using Tustin (bilinear) discretization to preserve frequency responses
-Stf  = c2d(tf(S), Ts, 'tustin');
-PStf = c2d(tf(PS), Ts, 'tustin');
-
-S_y = tf(1,1,Ts);
-PS_y = tf(1,1,Ts);
+Stf = tf(S); PStf = tf(PS);
 
 % [A,B,C,D] = ssdata(SP);
 % Number of states, inputs and outputs.
@@ -121,11 +121,15 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 0;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
-    theta = NaN(na+nb);
+    na = 1;  % Order input shaper Cy
+    nb = 4;  % Order feedforward Cff
+    theta = zeros(na+nb,3);
+
+    % add na zeros in direction vector
+    direction = zeros(na+nb);
+
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
@@ -151,13 +155,13 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     end
     % Parameterize input shaper Cy
     Psi_y = tf(zeros(1,na));
-    % for i = 1:na
-    %     num = zeros(1,i+1);
-    %     for k = 0:i
-    %         num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
-    %     end
-    %     Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
-    % end
+    for i = 1:na
+        num = zeros(1,i+1);
+        for k = 0:i
+            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
+        end
+        Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+    end
     Psi = minreal([Psi_y, Psi_ff]);
     history.r_y = zeros(N_trials,Nref,no);                                   % initialize shaped reference
 end
@@ -182,6 +186,9 @@ for jj = 1:N_trials
         
     % Execute trial.
     cd('..\Build') % To make sure sjlpr etc. end up in that folder
+    if ~isfolder('build')
+        mkdir('build');
+    end
     sim('Arizona_sim_base.slx')
     cd('..\Simfiles')
     
@@ -200,9 +207,14 @@ for jj = 1:N_trials
     if jj ~= N_trials
         r_jplus1 = r_j; % Reference is trial-invariant here
         
-        %% Your code here
-%         f_jplus1 = ILC_update_zeros(e_j,f_j);
-        % f_jplus1 = feedforwardUpdateSim(SP,t,r_j,e_j,f_j,Ts)
+        if strcmp(optFFmethod, 'ILC')
+            % Pass the entire MIMO closed-loop model, references, and error matrices
+            f_next_raw = feedforwardUpdateSim(PS, t, r_j, e_j, f_j, Ts);
+            
+            % Enforce your active direction filter mask [0, 1, 0]
+            % This zeros out any accidental learning bleeding into other axes
+            f_jplus1 = f_next_raw .* optFFdirections; 
+        end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
             % Identify active channel dynamically inside the loop execution
@@ -223,17 +235,20 @@ for jj = 1:N_trials
             if polynomial
                 theta(1:na) = zeros(na,1);                                      % basically turning off the input shaper, i.e., Cy=1
             end
+            theta_ch = theta*optFFdirections' + theta_delta;
+            theta(:,active_ch) = theta_ch;
+            f_jplus1_ch = Phi*theta_ch;
             
             % Generate the 1D feedforward signal for the next trial
-            f_next_all_channels = Phi * theta;
+            % f_next_all_channels = Phi * theta;
             
             % Extract ONLY the column matching our active channel 
             % (This guarantees a 13000 x 1 vector)
-            f_next_active = f_next_all_channels(:, 1);
+            % f_next_active = f_next_all_channels(:, 1);
             
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_next_active; % Inject strictly into the chosen axis slot
+            f_jplus1(:, active_ch) = f_jplus1_ch; % Inject strictly into the chosen axis slot
         end
         
         %%       

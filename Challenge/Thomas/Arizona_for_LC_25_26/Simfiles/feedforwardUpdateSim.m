@@ -34,32 +34,67 @@ fphi_cutoff = 50;
 num = {numy, numx, numphi};
 den = {deny, denx, denphi};
 
+% % ----------------------------------------------------------------------- %
+% % Frequency Domain ILC: Compute Update
+% % ----------------------------------------------------------------------- %
+% % Initialize vectors
+% L_e_j     = zeros(size(e_j));
+% 
+% L_e_j_    = [zeros(N_finite_time_fix*2, 3); L_e_j]; 
+% f_j_      = [f_j(1,:).*zeros(N_finite_time_fix,3); f_j; f_j(end,:).*zeros(N_finite_time_fix,3)];
+% f_jplus1_ = zeros(size(f_j_));
+% 
+% % STABLE INVERSE Perform learning update
+% for ii = 1:1
+%     [~, k] = stable_inv(SP, e_j(:,ii), N_finite_time_fix);
+%     L_e_j_(:,ii) = k;
+% end
+% 
+% % e_j_      = [e_j(1,:).*ones(N_finite_time_fix,3); e_j; e_j(end,:).*ones(N_finite_time_fix,3)];
+% % for ii = 1:1
+% %     [ai,bi,ci,di, phd] = zpetc(SP.A, SP.B, SP.C, SP.D, 1);
+% %     L = ss(ai,bi,ci,di,Ts);
+% %     k = lsim(L, e_j_(:,ii));
+% %     L_e_j_(:,ii) = [k(phd+1:end); zeros(phd,1)];
+% % end
+% 
+% % FF update
+% f_jplus1_unf = f_j_ + alpha*L_e_j_;
+
 % ----------------------------------------------------------------------- %
 % Frequency Domain ILC: Compute Update
 % ----------------------------------------------------------------------- %
 % Initialize vectors
 L_e_j     = zeros(size(e_j));
-
 L_e_j_    = [zeros(N_finite_time_fix*2, 3); L_e_j]; 
-f_j_      = [f_j(1,:).*zeros(N_finite_time_fix,3); f_j; f_j(end,:).*zeros(N_finite_time_fix,3)];
+f_j_      = [f_j(1,:).*ones(N_finite_time_fix,3); f_j; f_j(end,:).*ones(N_finite_time_fix,3)]; % Fixed: Changed zeros to ones to pad smoothly
 f_jplus1_ = zeros(size(f_j_));
 
-% STABLE INVERSE Perform learning update
-for ii = 1:1
-    [~, k] = stable_inv(SP, e_j(:,ii), N_finite_time_fix);
-    L_e_j_(:,ii) = k;
+% STABLE INVERSE Perform learning update across all active channels
+for ii = 1:ni
+    % Extract the specific single-channel loop from the diagonal of the MIMO system
+    % if SP is a diagonal MIMO state-space or transfer function matrix
+    SP_channel = SP(ii, ii); 
+    
+    % Only calculate stable inversion if there is actually an error signal on this axis
+    if max(abs(e_j(:,ii))) > 1e-9
+        [~, k] = stable_inv(SP_channel, e_j(:,ii), N_finite_time_fix);
+        L_e_j_(:,ii) = k;
+    else
+        L_e_j_(:,ii) = zeros(size(L_e_j_, 1), 1);
+    end
 end
-
-% e_j_      = [e_j(1,:).*ones(N_finite_time_fix,3); e_j; e_j(end,:).*ones(N_finite_time_fix,3)];
-% for ii = 1:1
-%     [ai,bi,ci,di, phd] = zpetc(SP.A, SP.B, SP.C, SP.D, 1);
-%     L = ss(ai,bi,ci,di,Ts);
-%     k = lsim(L, e_j_(:,ii));
-%     L_e_j_(:,ii) = [k(phd+1:end); zeros(phd,1)];
-% end
 
 % FF update
 f_jplus1_unf = f_j_ + alpha*L_e_j_;
+
+% Apply robustness filter
+for ii = 1:ni
+    f_jplus1_(:,ii) = filtfilt(num{ii}, den{ii}, f_jplus1_unf(:,ii));
+end
+
+% Trim vector
+f_jplus1 = f_jplus1_(N_finite_time_fix+1:end-N_finite_time_fix, :);
 
 % Apply robustness filter
 for ii = 1:ni
