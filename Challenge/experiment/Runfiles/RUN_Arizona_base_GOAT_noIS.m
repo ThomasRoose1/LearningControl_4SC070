@@ -542,7 +542,9 @@ for trial = 0:N_trial-1
 
 
     % Update trial data plot
-    PlotTrialDataContour(history,jj+1,0,0,0,0,1,0,1);         
+    PlotTrialDataContour(history,jj+1,0,0,0,0,1,0,1);    
+
+    % set new ref
     if strcmp(optFFmethod, 'ILC_BF_IS')
         set_new_ref(history.r_y(jj+1,:,:),tg);                                  % Apply shaped reference to the loop
     else
