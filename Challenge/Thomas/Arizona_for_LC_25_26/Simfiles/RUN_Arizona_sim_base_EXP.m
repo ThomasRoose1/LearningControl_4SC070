@@ -20,6 +20,8 @@ addpath(genpath('../Target_interfacing'))
 addpath(genpath('../Build'))
 addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
+addpath(genpath('../References'))
+addpath(genpath('../Runfiles'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
@@ -35,13 +37,47 @@ optFFdirections       = [0,1,0];
 % load('test_reference.mat')
 cd ..
 % load("References\Reference_X_slow.mat")
-load("References\small_step_slow_2_1.mat")
-xref = xref_pos;
-cd Simfiles
-N = 5/Ts;
-[yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
-% xref = xr ef*0;
-t = t';
+
+%%%%%%%%%%%%%% Original code %%%%%%%%%%%%%%%%%%%%%%%%%%
+% load("References\small_step_slow_2_1.mat")
+% xref = xref_pos;
+% cd Simfiles
+% N = 5/Ts;
+% [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
+% % xref = xr ef*0;
+% t = t';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+% Load trajectories
+% Reference options                                                         
+optSelectRef          = 'Gantry_slow';                                      % Set reference.   Change details in 'select_reference.m'
+optSelectRef2         = 'ref2';                                             % Set reference 2. Change details in 'select_reference.m'
+optRefDirections      = [0,1,0]              % (0=OFF, 1=ON)                % Set direction [y x phi] to apply reference
+optTrialRefSwitch     = -1;                                                 % Set trial # reference change. Update on trial N+1
+
+[yref, xref, phiref, t, Nref] = select_reference(optSelectRef, Ts);             
+yref = round(yref*optRefDirections(1),16); 
+xref = round(xref*optRefDirections(2),16);
+phiref = round(phiref*optRefDirections(3),16);
+
+[yref2, xref2, phiref2, t2, Nref2] = select_reference(optSelectRef2, Ts);             
+yref2 = round(yref2*optRefDirections(1),6); 
+xref2 = round(xref2*optRefDirections(2),6);
+phiref2 = round(phiref2*optRefDirections(3),6);
+
+% Match array lengths ref1 and ref2
+if optTrialRefSwitch > 0
+    if Nref > Nref2
+        % Padzeros to ref2 match array length ref1
+        [yref2, xref2, phiref2, t2] = pad_reference_to_N_zeros(yref2, xref2, phiref2,Nref, Ts);
+    else
+        % Padzeros to ref1 match array length ref2
+        [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,Nref2, Ts);
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % traj_number = 1;    
 % % size_i = length(yRefs{traj_number});
 % size_i = 1;   
@@ -54,18 +90,47 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 
-% y translation
-load('yController.mat')
-Cy = Cy_CT;
-load('Py_fit.mat')
-Py = Py_CT;
+%%%%%%%%%%%%%% Original code %%%%%%%%%%%%%%%%%%%%%%%%%%
+% % y translation
+% load('yController.mat')
+% Cy = Cy_CT;
+% load('Py_fit.mat')
+% Py = Py_CT;
+% 
+% 
+% % x translation
+% load('xController.mat');
+% Cx = Cx_CT;
+% load('Px_fit.mat')
+% Px = Px_CT;
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+BadControllers        = true;   % y translation 
+load('yController.mat')
+load('yControllerBad.mat');
+if BadControllers
+    Cy = shapeit_data.C_tf_z;
+else
+    Cy = Cy_DT;
+end
+load('Py_fit.mat')
+Py = Py_DT;
 
 % x translation
 load('xController.mat');
-Cx = Cx_CT;
+load('xControllerBad.mat');
+
+if BadControllers
+    Cx = shapeit_data.C_tf_z;
+else
+    Cx = Cx_DT;
+end
 load('Px_fit.mat')
-Px = Px_CT;
+Px = Px_DT;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % phi rotation
 load('phiController.mat');
@@ -123,13 +188,14 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 if strcmp(optFFmethod, 'ILC_BF_IS')
     polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 1;  % Order input shaper Cy
-    nb = 4;  % Order feedforward Cff
+    na = 0;  % Order input shaper Cy
+    nb = 3;  % Order feedforward Cff
     theta = zeros(na+nb,3);
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
+    N = Nref;
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
@@ -185,11 +251,10 @@ for jj = 1:N_trials
     r_j = squeeze(history.r(jj,:,:));  
         
     % Execute trial.
-    cd('..\Build') % To make sure sjlpr etc. end up in that folder
+    cd('Build') % To make sure sjlpr etc. end up in that folder
     if ~isfolder('build')
         mkdir('build');
     end
-    t = t(:);
     sim('Arizona_sim_base.slx')
     cd('..\Simfiles')
     
