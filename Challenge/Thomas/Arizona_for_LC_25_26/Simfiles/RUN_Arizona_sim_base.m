@@ -60,7 +60,6 @@ Cy = Cy_CT;
 load('Py_fit.mat')
 Py = Py_CT;
 
-
 % x translation
 load('xController.mat');
 Cx = Cx_CT;
@@ -79,7 +78,6 @@ SPx = minreal(feedback(Px_DT, Cx_DT));
 SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
 SP = SPx;
    
-
 % Stack for MIMO
 C_zpk = blkdiag(Cy_DT, Cx_DT, Cphi_DT);
 P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
@@ -104,6 +102,7 @@ history.epsilon = NaN(N_trials,Nref,1);
 history.epsilonNorm = NaN(N_trials,1);
 history.f = NaN(N_trials,Nref,ni); % [Trial, time, dim]
 history.r = NaN(N_trials,Nref,no); % [Tial, time, dim]
+history.r_y = NaN(N_trials,Nref,no);  
 history.p = NaN(N_trials,Nref,no);
 history.t = t;
 history.trials = 1:N_trials;
@@ -111,6 +110,7 @@ history.Nref = Nref;
 
 % Initial FFW and reference
 history.r(1,:,:) = [yref, xref, phiref]; % Order [y x phi]
+history.r_y(1,:,:) = history.r(1,:,:);
 history.f(1,:,:) = zeros(Nref,ni);
 PlotTrialDataContour(history,0,1,0,0,1,0,0,0); % Plots initial input
 PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
@@ -121,7 +121,7 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
     na = 1;  % Order input shaper Cy
     nb = 4;  % Order feedforward Cff
@@ -130,13 +130,12 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
-    
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
-    wf = 0*1e-14;
-    wdf = 0*1e-16;
-    wry = 0*1e-4;
-    wdry = 0*1*1e-2;
+    wf = 1e-14;
+    wdf = 1e-16;
+    wry = 1e-4;
+    wdry = 1*1e-2;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -163,7 +162,8 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     Psi = minreal([Psi_y, Psi_ff]);
-    history.r_y = zeros(N_trials,Nref,no);                                   % initialize shaped reference
+                     
+    
 end
 
 %% Execute trials
@@ -180,9 +180,10 @@ for jj = 1:N_trials
     % Increase trial in plot
     PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
     
-    % Set reference and feedforward. Used like this in simulink
+    % Set reference and feedforward. Used like this in simulink, uses the
+    % shaped ref
     f_j = squeeze(history.f(jj,:,:));
-    r_j = squeeze(history.r(jj,:,:));  
+    r_j = squeeze(history.r_y(jj,:,:));  
         
     % Execute trial.
     cd('..\Build') % To make sure sjlpr etc. end up in that folder
@@ -214,6 +215,9 @@ for jj = 1:N_trials
             % Enforce your active direction filter mask [0, 1, 0]
             % This zeros out any accidental learning bleeding into other axes
             f_jplus1 = f_next_raw .* optFFdirections; 
+
+            % set next shaped ref as ref
+            r_y_jplus1 = r_j;
         end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
@@ -232,30 +236,35 @@ for jj = 1:N_trials
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts);
 
-            if polynomial
-                theta(1:na) = zeros(na,1);                                      % basically turning off the input shaper, i.e., Cy=1
-            end
+            % theta update
             theta_ch = theta*optFFdirections' + theta_delta;
             theta(:,active_ch) = theta_ch;
+
+            % Input shaper update
+            if polynomial
+                % set IS terms of theta to 0
+                theta(1:na) = zeros(na,1); 
+
+                % set next shaper ref to ref
+                r_y_jplus1 = r_j;
+            else
+                % input shaper code
+            end
+
+            % ff update on active channel
             f_jplus1_ch = Phi*theta_ch;
-            
-            % Generate the 1D feedforward signal for the next trial
-            % f_next_all_channels = Phi * theta;
-            
-            % Extract ONLY the column matching our active channel 
-            % (This guarantees a 13000 x 1 vector)
-            % f_next_active = f_next_all_channels(:, 1);
             
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; % Inject strictly into the chosen axis slot
+            f_jplus1(:, active_ch) = f_jplus1_ch; 
         end
         
         %%       
         % Store in FFW
         history.r(jj+1,:,:) = r_jplus1;
+        history.r_y(jj+1,:,:) = r_y_jplus1;
         history.f(jj+1,:,:) = f_jplus1;
         
-        PlotTrialDataContour(history,jj,0,0,0,1,0,0,0); % Plots new ffw
+        PlotTrialDataContour(history,jj,0,0,0,1,0,0,1); % Plots new ffw
     end
 end
