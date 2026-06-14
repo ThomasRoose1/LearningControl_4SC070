@@ -18,7 +18,7 @@ init_Arizona
 % =========================================================================
 
 % Build options
-optBuild              = false;              % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
+optBuild              = false;               % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
 optSDIviewer          = false;               % (true/false)                  % Open simulink data inspector
 clear_optBuild                                                             
 
@@ -230,8 +230,14 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
     na = 0;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
-    theta = zeros(na+nb,3);
+    nb = 4;  % Order feedforward Cff
+    nc = 0;  % extra bf
+    use_coulomb_basis = false;
+    if use_coulomb_basis
+        nc = 1;
+    end
+    ntheta = na+nb+nc;
+    theta_j = zeros(ntheta,3);
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
@@ -241,8 +247,8 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     we = 1;                                                                     
     wf = 1*1e-14;
     wdf = 1*1e-16;
-    wry = 0*1e-4;
-    wdry = 0*1*1e-2;
+    wry = 1e-4;
+    wdry = 1*1e-2;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -251,24 +257,24 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Wdry = wdry*eye(N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
 
     % Parameterize feedforward Cff
-    Psi_ff = tf(zeros(1,nb));
+    Phi_ff = tf(zeros(1,nb));
     for i = 1:nb
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Psi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Phi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     % Parameterize input shaper Cy
-    Psi_y = tf(zeros(1,na));
+    Phi_y = tf(zeros(1,na));
     for i = 1:na
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Phi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
-    Psi = minreal([Psi_y, Psi_ff]);
+    Psi = minreal([Phi_y, Phi_ff]);
 end
 
 %% ========================================================================
@@ -488,18 +494,6 @@ for trial = 0:N_trial-1
         % Your own feedforward update
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%         theta_delta = FeedforwardUpdate_ILC_BFIS(na,nb);
-% 
-%         f_jplus1 = zeros(Nref,ni);
-%         ry_jplus1 = history.r(jj+1,:,:);
-% 
-%         % Set specified feedforward directions to zero
-%         f_jplus1 = f_jplus1.*optFFdirections;
-%           
-%         % Update history struct        
-%         history.f(jj+1,:,:) = f_jplus1;                                     % Store f_jplus1
-            % history.r_y(jj+1,:,:) = ry_jplus1;
-
             % Identify active channel dynamically inside the loop execution
             active_ch = find(optFFdirections == 1, 1);
             
@@ -513,15 +507,40 @@ for trial = 0:N_trial-1
             [theta_delta, Phi] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
                 tf(Sx), tf(SPx), ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-                e_y_active, r_y_active, f_active, r_active, t, Ts);
+                e_y_active, r_y_active, f_active, r_active, t, Ts, ...
+                ntheta, use_coulomb_basis);
 
-            if polynomial
-                theta(1:na) = zeros(na,1);                                      % basically turning off the input shaper, i.e., Cy=1
-            end
-            theta_ch = theta*optFFdirections' + theta_delta;
-            theta(:,active_ch) = theta_ch;
-            f_jplus1_ch = Phi*theta_ch;
+            % seperate Psi matrix into input shaper and ff
+            Phi_y = Phi(:,1:na);
+            Phi_ff = Phi(:,na+1:end);
             
+            % Update theta
+            theta_jplus1_ch = theta_j *optFFdirections' + theta_delta;
+            theta_j(:,active_ch) = theta_jplus1_ch;
+
+            % Seperate theta matrix into input shaper and ff in active ch
+            % direction
+            theta_y = theta_j(1:na,active_ch);
+            theta_ff = theta_j(na+1:end,active_ch);
+                
+            % Initialize next shaped ref as ref
+            r_y_jplus1 = squeeze(r_jplus1);
+            if polynomial
+                % basically turning off the input shaper, i.e., Cy=1
+                theta_y = zeros(na,1);                                      
+            else
+                % Compute shaped ref
+                r_y_jplus1_ch = Phi_y * theta_y;
+
+                % Save shaped ref in active channel
+                r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
+            end
+
+            % Set the next shaped reference
+            history.r_y(jj+1,:,:) = r_y_jplus1;
+
+            % Apply feedforward update
+            f_jplus1_ch = Phi_ff*theta_ff;
             f_update_ch = f_jplus1_ch - squeeze(history.f(jj,:,:))*optFFdirections';
        
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
@@ -533,11 +552,6 @@ for trial = 0:N_trial-1
 
             history.f(jj+1,:,:) = f_jplus1;                                     % Store f_jplus1
             history.fupdate(jj+1,:,:) = f_update;
-
-            if polynomial 
-                % next shaped ref should simply be ref
-                history.r_y(jj+1,:,:) = r_jplus1;
-            end
     end
 
 
