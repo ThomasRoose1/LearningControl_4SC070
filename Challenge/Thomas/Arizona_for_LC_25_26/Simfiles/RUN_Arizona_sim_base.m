@@ -76,7 +76,7 @@ Pphi = Pphi_CT;
 SPy = minreal(feedback(Py_DT, Cy_DT));
 SPx = minreal(feedback(Px_DT, Cx_DT));
 SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
-SP = SPx;
+
    
 % Stack for MIMO, add 0.25 to mirror real setup
 C_zpk = 0.25 * blkdiag(Cy_DT, Cx_DT, Cphi_DT);

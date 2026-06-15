@@ -227,10 +227,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Stf = tf(S1); PStf = tf(PS1);
     
     N = Nref;
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 0;  % Order input shaper Cy
-    nb = 4;  % Order feedforward Cff
+    na = 3;  % Order input shaper Cy
+    nb = 3;  % Order feedforward Cff
     nc = 0;  % extra bf
     use_coulomb_basis = false;
     if use_coulomb_basis
@@ -245,10 +245,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
-    wf = 1*1e-14;
-    wdf = 1*1e-16;
+    wf = 1*1e-8;
+    wdf = 1*1e-14;
     wry = 1e-4;
-    wdry = 1*1e-2;
+    wdry = 1*1e-4;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -257,24 +257,24 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Wdry = wdry*eye(N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
 
     % Parameterize feedforward Cff
-    Phi_ff = tf(zeros(1,nb));
+    Psi_ff = tf(zeros(1,nb));
     for i = 1:nb
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Phi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Psi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     % Parameterize input shaper Cy
-    Phi_y = tf(zeros(1,na));
+    Psi_y = tf(zeros(1,na));
     for i = 1:na
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Phi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
-    Psi = minreal([Phi_y, Phi_ff]);
+    Psi = minreal([Psi_y, Psi_ff]);
 end
 
 %% ========================================================================
@@ -504,54 +504,54 @@ for trial = 0:N_trial-1
             r_active   = squeeze(history.r(jj, :, active_ch))';
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            [theta_delta, Phi] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
-                tf(Sx), tf(SPx), ...
+            [theta_delta] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
+                Sx, SPx, ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts, ...
                 ntheta, use_coulomb_basis);
 
-            % seperate Psi matrix into input shaper and ff
-            Phi_y = Phi(:,1:na);
-            Phi_ff = Phi(:,na+1:end);
-            
-            % Update theta
-            theta_jplus1_ch = theta_j *optFFdirections' + theta_delta;
-            theta_j(:,active_ch) = theta_jplus1_ch;
+            % theta update
+            theta_ch = theta_j*optFFdirections' + theta_delta;
+            theta_j(:,active_ch) = theta_ch; 
+
+
+            r_y_jplus1 = r_j;
+            if polynomial
+                % set IS terms of theta to 0
+                theta_j(1:na, active_ch) = zeros(na,1);              
+            end
 
             % Seperate theta matrix into input shaper and ff in active ch
             % direction
             theta_y = theta_j(1:na,active_ch);
             theta_ff = theta_j(na+1:end,active_ch);
-                
-            % Initialize next shaped ref as ref
-            r_y_jplus1 = squeeze(r_jplus1);
-            if polynomial
-                % basically turning off the input shaper, i.e., Cy=1
-                theta_y = zeros(na,1);                                      
-            else
-                % Compute shaped ref
-                r_y_jplus1_ch = Phi_y * theta_y;
+    
+            % Construct IS and ff controllers
+            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
+            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
+        
+            % C = minreal(Cfb*Cy + Cff); 
+            
+            % input shaper update
+            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
+            
+            % overwrite active channel shaped ref
+            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
 
-                % Save shaped ref in active channel
-                r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-            end
+            % ff update
+            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
 
-            % Set the next shaped reference
-            history.r_y(jj+1,:,:) = r_y_jplus1;
-
-            % Apply feedforward update
-            f_jplus1_ch = Phi_ff*theta_ff;
-            f_update_ch = f_jplus1_ch - squeeze(history.f(jj,:,:))*optFFdirections';
-       
+            % ff update on active channel
+            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
+            % f_jplus1_ch = Phi*theta_ch; % works
+            
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_update = zeros(Nref, ni);
-
-            f_jplus1(:, active_ch) = f_jplus1_ch; % Inject strictly into the chosen axis slot
-            f_update(:, active_ch) = f_update_ch;
+            f_jplus1(:, active_ch) = f_jplus1_ch; 
 
             history.f(jj+1,:,:) = f_jplus1;                                     % Store f_jplus1
-            history.fupdate(jj+1,:,:) = f_update;
+%             history.fupdate(jj+1,:,:) = f_update;
+            history.r_y(jj+1,:,:) = r_y_jplus1;
     end
 
 
