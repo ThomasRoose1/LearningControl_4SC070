@@ -25,6 +25,7 @@ Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
+BadControllers        = true;
 % optFFmethod           = 'ILC';  
 optFFdirections       = [0,1,0];    
 
@@ -54,33 +55,61 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 
-% y translation
+% % y translation
+% load('yController.mat')
+% Cy = Cy_CT;
+% load('Py_fit.mat')
+% Py = Py_CT;
+% 
+% % x translation
+% load('xController.mat');
+% Cx = Cx_CT;
+% load('Px_fit.mat')
+% Px = Px_CT;
+% 
+% % phi rotation
+% load('phiController.mat');
+% Cphi = Cphi_CT;
+% load('Pphi_fit.mat')
+% Pphi = Pphi_CT;
+
+% y translation 
 load('yController.mat')
-Cy = Cy_CT;
+load('yControllerBad.mat');
+if BadControllers
+    Cy = shapeit_data.C_tf_z;
+else
+    Cy = Cy_DT;
+end
 load('Py_fit.mat')
-Py = Py_CT;
+Py = Py_DT;
 
 % x translation
 load('xController.mat');
-Cx = Cx_CT;
+load('xControllerBad.mat');
+
+if BadControllers
+    Cx = shapeit_data.C_tf_z;
+else
+    Cx = Cx_DT;
+end
 load('Px_fit.mat')
-Px = Px_CT;
+Px = Px_DT;
 
 % phi rotation
 load('phiController.mat');
-Cphi = Cphi_CT;
+Cphi = Cphi_DT;
 load('Pphi_fit.mat')
-Pphi = Pphi_CT;
+Pphi = Pphi_DT;
 
 % Interconnection.
-SPy = minreal(feedback(Py_DT, Cy_DT));
-SPx = minreal(feedback(Px_DT, Cx_DT));
-SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
-SP = SPx;
+SPy = minreal(feedback(Py, Cy));
+SPx = minreal(feedback(Px, Cx));
+SPphi = minreal(feedback(Pphi, Cphi));
    
 % Stack for MIMO, add 0.25 to mirror real setup
-C_zpk = 0.25 * blkdiag(Cy_DT, Cx_DT, Cphi_DT);
-P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
+C_zpk = 0.25 * blkdiag(Cy, Cx, Cphi);
+P_zpk = blkdiag(Py, Px, Pphi);
 
 %% Interconnection.
 [S,PS] = ClosedLoopTransfers(P_zpk,C_zpk);
@@ -167,8 +196,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     Psi = minreal([Psi_y, Psi_ff]);
-                     
-    
+                    
 end
 
 %% Execute trials
@@ -240,6 +268,7 @@ for jj = 1:N_trials
                 Stf(active_ch, active_ch), PStf(active_ch, active_ch), ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts);
+            theta_delta
 
             % % seperate Phi matrix into input shaper and ff
             % Phi_y = Phi(:,1:na);
@@ -282,6 +311,35 @@ for jj = 1:N_trials
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
             f_jplus1(:, active_ch) = f_jplus1_ch; 
+
+            % --- Convergence Check (Slide 20 / Image formula) ---
+
+            % 1. Extract the feedforward part of your regressor (which is J*Psi)
+            Phi_ff = Phi(:, na+1:end); 
+            
+            % 2. Compute the three terms in the formula
+            % Term 1: Psi^T * J^T * We * J * Psi
+            Term1 = Phi_ff' * We * Phi_ff; 
+            
+            % Term 2: Psi^T * Wf * Psi
+            Term2 = Psi_ff_r' * Wf * Psi_ff_r;
+            
+            % Term 3: Psi^T * Wdf * Psi
+            Term3 = Psi_ff_r' * Wdf * Psi_ff_r;
+            
+            % 3. Build the learning matrix M
+            M = (Term1 + Term2 + Term3) \ Term3;
+            
+            % 4. Compute all singular values of M
+            singular_values = svd(M);
+            max_sv = max(singular_values);
+            
+            fprintf('Maximum singular value for monotonic convergence: %.6f\n', max_sv);
+            if max_sv < 1
+                disp('Result: SUCCESS (< 1). Algorithm is guaranteed to converge monotonically.');
+            else
+                disp('Result: FAIL (>= 1). Weights Wf / Wdf are too low or system is ill-conditioned.');
+            end
         end
         
         %%       

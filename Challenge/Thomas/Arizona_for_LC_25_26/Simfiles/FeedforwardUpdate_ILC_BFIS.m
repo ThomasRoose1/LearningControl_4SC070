@@ -66,7 +66,73 @@ function [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na,n
         Wf_sq*f;
         zeros(N,1)];
 
-    X_scaled = X ./ vecnorm(X);                                     % For better conditioning
+    % X_scaled = X ./ vecnorm(X);                                     % For better conditioning
+    % th_scaled = X_scaled \ Y;
+    % theta_delta = th_scaled ./ vecnorm(X).';
+
+    % Solve scaled least-squares problem
+
+    colNorms = vecnorm(X);
+
+    % Avoid division by zero for zero columns
+    colNorms(colNorms == 0) = 1;
+
+    % Scale each column of X by its norm
+    X_scaled = X ./ colNorms;
+
+    % Solve least-squares problem
     th_scaled = X_scaled \ Y;
-    theta_delta = th_scaled ./ vecnorm(X).';
+
+    % Scale parameters back
+    theta_delta = th_scaled ./ colNorms.';
 end
+% function [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na,nb,Psi,N,S,PS,We_sq,Wry_sq,Wdry_sq,Wf_sq,Wdf_sq,e_y,r_y,f,r,t,Ts)
+%     Phi = zeros(N,na+nb);
+% 
+%     % Only evaluate the input shaper basis functions if na > 0
+%     if na > 0
+%         Phi(:,1:na) = -lsim((series(S,Psi(1:na))).', r, t);
+%         Psi_y_r = lsim(Psi(1:na).', r, t); 
+%     else
+%         Psi_y_r = zeros(N, 0);
+%     end
+%     % Phi(:,1:na) = -brfus_v003((series(S,Psi(1:na))).',r,t,Ts);
+%     Phi(:,na+1:end) = lsim((series(PS,Psi(na+1:end))).',r,t,Ts);
+% 
+%     % Psi_y_r = brfus_v003(Psi(1:na).',r,t,Ts);
+%     Psi_ff_r = lsim(Psi(na+1:end).',r,t,Ts);
+% 
+%     % Create regressor matrix
+%     X = [We_sq*Phi;
+%         -Wry_sq*Psi_y_r, zeros(N,nb);
+%         -Wdry_sq*Psi_y_r, zeros(N,nb);
+%         zeros(N,na), -Wf_sq*Psi_ff_r;
+%         zeros(N,na), -Wdf_sq*Psi_ff_r];
+% 
+%     % Create response vector
+%     Y = [We_sq*e_y;
+%         Wry_sq*r_y;
+%         zeros(N,1);
+%         Wf_sq*f;
+%         zeros(N,1)];
+% 
+%     % X_scaled = X ./ vecnorm(X);                                     % For better conditioning
+%     % th_scaled = X_scaled \ Y;
+%     % theta_delta = th_scaled ./ vecnorm(X).';
+% 
+%     % Solve scaled least-squares problem
+% 
+%     colNorms = vecnorm(X);
+% 
+%     % Avoid division by zero for zero columns
+%     colNorms(colNorms == 0) = 1;
+% 
+%     % Scale each column of X by its norm
+%     X_scaled = X ./ colNorms;
+% 
+%     % Solve least-squares problem
+%     th_scaled = X_scaled \ Y;
+% 
+%     % Scale parameters back
+%     theta_delta = th_scaled ./ colNorms.';
+% end
