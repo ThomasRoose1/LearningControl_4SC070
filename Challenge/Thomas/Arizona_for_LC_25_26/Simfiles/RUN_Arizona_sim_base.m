@@ -25,6 +25,7 @@ Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
+BadControllers        = true;
 % optFFmethod           = 'ILC';  
 optFFdirections       = [0,1,0];    
 
@@ -34,9 +35,9 @@ optFFdirections       = [0,1,0];
 % [xref, yref, phiref, t] = reference_rounded_rectangle(Ts);
 % load('test_reference.mat')
 cd ..
-% load("References\Reference_X_slow.mat")
-load("References\small_step_slow_2_1.mat")
-xref = xref_pos;
+load("References\Reference_X_slow.mat")
+% load("References\small_step_slow_2_1.mat")
+% xref = xref_pos;
 cd Simfiles
 N = 5/Ts;
 [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
@@ -54,35 +55,61 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 
-% y translation
-load('yController.mat')
-Cy = Cy_CT;
-load('Py_fit.mat')
-Py = Py_CT;
+% % y translation
+% load('yController.mat')
+% Cy = Cy_CT;
+% load('Py_fit.mat')
+% Py = Py_CT;
+% 
+% % x translation
+% load('xController.mat');
+% Cx = Cx_CT;
+% load('Px_fit.mat')
+% Px = Px_CT;
+% 
+% % phi rotation
+% load('phiController.mat');
+% Cphi = Cphi_CT;
+% load('Pphi_fit.mat')
+% Pphi = Pphi_CT;
 
+% y translation 
+load('yController.mat')
+load('yControllerBad.mat');
+if BadControllers
+    Cy = shapeit_data.C_tf_z;
+else
+    Cy = Cy_DT;
+end
+load('Py_fit.mat')
+Py = Py_DT;
 
 % x translation
 load('xController.mat');
-Cx = Cx_CT;
+load('xControllerBad.mat');
+
+if BadControllers
+    Cx = shapeit_data.C_tf_z;
+else
+    Cx = Cx_DT;
+end
 load('Px_fit.mat')
-Px = Px_CT;
+Px = Px_DT;
 
 % phi rotation
 load('phiController.mat');
-Cphi = Cphi_CT;
+Cphi = Cphi_DT;
 load('Pphi_fit.mat')
-Pphi = Pphi_CT;
+Pphi = Pphi_DT;
 
 % Interconnection.
-SPy = minreal(feedback(Py_DT, Cy_DT));
-SPx = minreal(feedback(Px_DT, Cx_DT));
-SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
-SP = SPx;
+SPy = minreal(feedback(Py, Cy));
+SPx = minreal(feedback(Px, Cx));
+SPphi = minreal(feedback(Pphi, Cphi));
    
-
-% Stack for MIMO
-C_zpk = blkdiag(Cy_DT, Cx_DT, Cphi_DT);
-P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
+% Stack for MIMO, add 0.25 to mirror real setup
+C_zpk = 0.25 * blkdiag(Cy, Cx, Cphi);
+P_zpk = blkdiag(Py, Px, Pphi);
 
 %% Interconnection.
 [S,PS] = ClosedLoopTransfers(P_zpk,C_zpk);
@@ -104,6 +131,7 @@ history.epsilon = NaN(N_trials,Nref,1);
 history.epsilonNorm = NaN(N_trials,1);
 history.f = NaN(N_trials,Nref,ni); % [Trial, time, dim]
 history.r = NaN(N_trials,Nref,no); % [Tial, time, dim]
+history.r_y = NaN(N_trials,Nref,no);  
 history.p = NaN(N_trials,Nref,no);
 history.t = t;
 history.trials = 1:N_trials;
@@ -111,6 +139,7 @@ history.Nref = Nref;
 
 % Initial FFW and reference
 history.r(1,:,:) = [yref, xref, phiref]; % Order [y x phi]
+history.r_y(1,:,:) = history.r(1,:,:);
 history.f(1,:,:) = zeros(Nref,ni);
 PlotTrialDataContour(history,0,1,0,0,1,0,0,0); % Plots initial input
 PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
@@ -121,22 +150,26 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 1;  % Order input shaper Cy
-    nb = 4;  % Order feedforward Cff
-    theta = zeros(na+nb,3);
+    na = 0;  % Order input shaper Cy
+    nb = 3;  % Order feedforward Cff
+    theta_j = zeros(na+nb,3);
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
-    
     % Weighting parameters (diagonal weighting)
+    % we = 1;                                                                     
+    % wf = 0*1e-14;
+    % wdf = 0*1e-16;
+    % wry = 1e-4;
+    % wdry = 1*1e-2;
     we = 1;                                                                     
-    wf = 0*1e-14;
-    wdf = 0*1e-16;
-    wry = 0*1e-4;
-    wdry = 0*1*1e-2;
+    wf = 1e-12;   % Lowered so the optimizer is allowed to use feedforward
+    wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
+    wry = 1e-4;
+    wdry = 1e-4;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -163,7 +196,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     Psi = minreal([Psi_y, Psi_ff]);
-    history.r_y = zeros(N_trials,Nref,no);                                   % initialize shaped reference
+                    
 end
 
 %% Execute trials
@@ -180,9 +213,10 @@ for jj = 1:N_trials
     % Increase trial in plot
     PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
     
-    % Set reference and feedforward. Used like this in simulink
+    % Set reference and feedforward. Used like this in simulink, uses the
+    % shaped ref
     f_j = squeeze(history.f(jj,:,:));
-    r_j = squeeze(history.r(jj,:,:));  
+    r_j = squeeze(history.r_y(jj,:,:));  
         
     % Execute trial.
     cd('..\Build') % To make sure sjlpr etc. end up in that folder
@@ -215,6 +249,9 @@ for jj = 1:N_trials
             % Enforce your active direction filter mask [0, 1, 0]
             % This zeros out any accidental learning bleeding into other axes
             f_jplus1 = f_next_raw .* optFFdirections; 
+
+            % set next shaped ref as ref
+            r_y_jplus1 = r_j;
         end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
@@ -228,35 +265,90 @@ for jj = 1:N_trials
             r_active   = squeeze(history.r(jj, :, active_ch))';
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            [theta_delta, Phi] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
+            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
                 Stf(active_ch, active_ch), PStf(active_ch, active_ch), ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts);
+            theta_delta
+
+            % % seperate Phi matrix into input shaper and ff
+            % Phi_y = Phi(:,1:na);
+            % Phi_ff = Phi(:,na+1:end);
+
+            % theta update
+            theta_ch = theta_j*optFFdirections' + theta_delta;
+            theta_j(:,active_ch) = theta_ch; 
 
             if polynomial
-                theta(1:na) = zeros(na,1);                                      % basically turning off the input shaper, i.e., Cy=1
+                % set IS terms of theta to 0
+                theta_j(1:na, active_ch) = zeros(na,1);
+                r_y_jplus1 = r_j;
             end
-            theta_ch = theta*optFFdirections' + theta_delta;
-            theta(:,active_ch) = theta_ch;
-            f_jplus1_ch = Phi*theta_ch;
+
+            % Seperate theta matrix into input shaper and ff in active ch
+            % direction
+            theta_y = theta_j(1:na,active_ch);
+            theta_ff = theta_j(na+1:end,active_ch);
+    
+            % Construct IS and ff controllers
+            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
+            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
+        
+            % C = minreal(Cfb*Cy + Cff); 
             
-            % Generate the 1D feedforward signal for the next trial
-            % f_next_all_channels = Phi * theta;
+            % input shaper update
+            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
             
-            % Extract ONLY the column matching our active channel 
-            % (This guarantees a 13000 x 1 vector)
-            % f_next_active = f_next_all_channels(:, 1);
+            % overwrite active channel shaped ref
+            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
+
+            % ff update
+            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
+
+            % ff update on active channel
+            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
+            % f_jplus1_ch = Phi*theta_ch; % works
             
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; % Inject strictly into the chosen axis slot
+            f_jplus1(:, active_ch) = f_jplus1_ch; 
+
+            % --- Convergence Check (Slide 20 / Image formula) ---
+
+            % 1. Extract the feedforward part of your regressor (which is J*Psi)
+            Phi_ff = Phi(:, na+1:end); 
+            
+            % 2. Compute the three terms in the formula
+            % Term 1: Psi^T * J^T * We * J * Psi
+            Term1 = Phi_ff' * We * Phi_ff; 
+            
+            % Term 2: Psi^T * Wf * Psi
+            Term2 = Psi_ff_r' * Wf * Psi_ff_r;
+            
+            % Term 3: Psi^T * Wdf * Psi
+            Term3 = Psi_ff_r' * Wdf * Psi_ff_r;
+            
+            % 3. Build the learning matrix M
+            M = (Term1 + Term2 + Term3) \ Term3;
+            
+            % 4. Compute all singular values of M
+            singular_values = svd(M);
+            max_sv = max(singular_values);
+            
+            fprintf('Maximum singular value for monotonic convergence: %.6f\n', max_sv);
+            if max_sv < 1
+                disp('Result: SUCCESS (< 1). Algorithm is guaranteed to converge monotonically.');
+            else
+                disp('Result: FAIL (>= 1). Weights Wf / Wdf are too low or system is ill-conditioned.');
+            end
         end
         
         %%       
         % Store in FFW
         history.r(jj+1,:,:) = r_jplus1;
+        history.r_y(jj+1,:,:) = r_y_jplus1;
         history.f(jj+1,:,:) = f_jplus1;
         
-        PlotTrialDataContour(history,jj,0,0,0,1,0,0,0); % Plots new ffw
+        PlotTrialDataContour(history,jj,0,0,0,1,0,0,1); % Plots new ffw
     end
 end
