@@ -22,7 +22,7 @@ addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 2; % 1,...,N_trial
+N_trials = 10; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -155,21 +155,16 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 0;  % Order input shaper Cy
+    na = 2;  % Order input shaper Cy
     nb = 3;  % Order feedforward Cff
     nc = 0;
     
 
     % Select if coulomb should be used
-    coulomb = true;
-    % Define the 'include_friction' struct
-    include_friction = struct();
-    include_friction.input_shaper = false; % Turn off friction for input shaper
-    include_friction.feedforward  = false;  % Turn on friction for feedforward path
+    coulomb = false;
 
-    alpha = 1;
     v_eps = 1e-4; 
     if coulomb
         nc = 1;
@@ -187,10 +182,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % wry = 1e-4;
     % wdry = 1*1e-2;
     we = 1;                                                                     
-    wf = 1e-12;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
-    wry = 1e-4;
-    wdry = 1e-4;
+    wf = 0*1e-12;   % Lowered so the optimizer is allowed to use feedforward
+    wdf = 0*1e-10;  % Keeps the high-frequency derivatives smooth
+    wry = 0*1e-10;
+    wdry = 0*1e-4;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -271,6 +266,7 @@ for jj = 1:N_trials
     PlotTrialDataContour(history,jj,0,0,0,0,0,1,0); % Plots error and position
     
     % Select new reference and feedforward.
+    r_y_jplus1 = r_j;
     if jj ~= N_trials
         r_jplus1 = r_j; % Reference is trial-invariant here
 
@@ -302,16 +298,15 @@ for jj = 1:N_trials
             theta_y = theta_ch(1:na);
             theta_ff = theta_ch(na+1:end);
 
-            r_y_jplus1 = r_j;
             if polynomial
+                r_y_jplus1 = r_j;
                 % set IS terms of theta to 0
                 theta_y(1:na) = zeros(na,1);   
             else
                 % update IS x
-                Cy = minreal(1 + Psi_y*theta_y);
-                r_y_jplus1(:,active_ch) = brfus_v003(Cy,r_active(:,1),t,Ts);
-                % r_y_jplus1_x =  r_active(:,1) + Psi_y_r_x*theta_y_x;  
-                %r_y_jplus1(:,active_ch) = r_y_jplus1;
+                % Cy = minreal(1 + Psi_y*theta_y);
+                % r_y_jplus1(:,active_ch) = brfus_v003(Cy,r_active,t,Ts);
+                r_y_jplus1(:,active_ch) =  r_active + Psi_y_r*theta_y;  
             end            
             
             f_jplus1 = zeros(Nref, 3);
