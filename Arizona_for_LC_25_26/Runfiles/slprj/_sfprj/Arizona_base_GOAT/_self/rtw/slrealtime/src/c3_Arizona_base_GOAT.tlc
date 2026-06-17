@@ -1,0 +1,89 @@
+%implements "chartSource" "C"
+%function ChartConfig(block, system) void
+  %createrecord chartConfiguration { ...
+          executeAtInitialization  0 ...
+  }
+  %return chartConfiguration
+%endfunction
+%function ChartDataMap(block, system) void
+  %createrecord ChartDataElements {\
+    NumChartData   9 \
+    ChartDataDefaults {\
+      RecordType   "ChartData"\
+      Dimensions   []\
+      IsTestPoint  0\
+    }\
+    ChartData {\
+      Name         "is_active_c3_Arizona_base_GOAT"\
+      Description  "StateIsActive"\
+      SFName       "is_active_c3_Arizona_base_GOAT"\
+      Path         "is_active_c3_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_c3_Arizona_base_GOAT"\
+      Description  "StateActiveChild"\
+      SFName       "is_c3_Arizona_base_GOAT"\
+      Path         "is_c3_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_gantryAirbag"\
+      Description  "StateActiveChild"\
+      SFName       "is_gantryAirbag"\
+      Path         "evaluateSatefy.gantryAirbag.is_gantryAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_gantryAirbag"\
+      Description  "StateIsActive"\
+      SFName       "is_active_gantryAirbag"\
+      Path         "evaluateSatefy.gantryAirbag.is_active_gantryAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_errorAirbag"\
+      Description  "StateActiveChild"\
+      SFName       "is_errorAirbag"\
+      Path         "evaluateSatefy.errorAirbag.is_errorAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_errorAirbag"\
+      Description  "StateIsActive"\
+      SFName       "is_active_errorAirbag"\
+      Path         "evaluateSatefy.errorAirbag.is_active_errorAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_carriageAirbag"\
+      Description  "StateActiveChild"\
+      SFName       "is_carriageAirbag"\
+      Path         "evaluateSatefy.carriageAirbag.is_carriageAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_carriageAirbag"\
+      Description  "StateIsActive"\
+      SFName       "is_active_carriageAirbag"\
+      Path         "evaluateSatefy.carriageAirbag.is_active_carriageAirbag"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "sfEvent"\
+      Description  "ActiveChartEvent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+  }
+  %return ChartDataElements
+%endfunction

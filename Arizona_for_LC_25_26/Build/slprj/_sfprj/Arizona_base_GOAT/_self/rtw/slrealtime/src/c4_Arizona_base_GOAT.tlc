@@ -1,0 +1,154 @@
+%implements "chartSource" "C"
+%function ChartConfig(block, system) void
+  %createrecord chartConfiguration { ...
+          executeAtInitialization  0 ...
+  }
+  %return chartConfiguration
+%endfunction
+%function ChartDataMap(block, system) void
+  %createrecord ChartDataElements {\
+    NumChartData   18 \
+    ChartDataDefaults {\
+      RecordType   "ChartData"\
+      Dimensions   []\
+      IsTestPoint  0\
+    }\
+    ChartData {\
+      Name         "is_active_c4_Arizona_base_GOAT"\
+      Description  "StateIsActive"\
+      SFName       "is_active_c4_Arizona_base_GOAT"\
+      Path         "is_active_c4_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_c4_Arizona_base_GOAT"\
+      Description  "StateActiveChild"\
+      SFName       "is_c4_Arizona_base_GOAT"\
+      Path         "is_c4_Arizona_base_GOAT"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_MAIN"\
+      Description  "StateActiveChild"\
+      SFName       "is_MAIN"\
+      Path         "MOVE_PENHOLDER.MAIN.is_MAIN"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_MAIN"\
+      Description  "StateIsActive"\
+      SFName       "is_active_MAIN"\
+      Path         "MOVE_PENHOLDER.MAIN.is_active_MAIN"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_VERTICAL"\
+      Description  "StateActiveChild"\
+      SFName       "is_VERTICAL"\
+      Path         "MOVE_PENHOLDER.VERTICAL.is_VERTICAL"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_VERTICAL"\
+      Description  "StateIsActive"\
+      SFName       "is_active_VERTICAL"\
+      Path         "MOVE_PENHOLDER.VERTICAL.is_active_VERTICAL"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_ROTATION"\
+      Description  "StateActiveChild"\
+      SFName       "is_ROTATION"\
+      Path         "MOVE_PENHOLDER.ROTATION.is_ROTATION"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_ROTATION"\
+      Description  "StateIsActive"\
+      SFName       "is_active_ROTATION"\
+      Path         "MOVE_PENHOLDER.ROTATION.is_active_ROTATION"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_HOME"\
+      Description  "StateActiveChild"\
+      SFName       "is_HOME"\
+      Path         "MOVE_PENHOLDER.HOME.is_HOME"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "is_active_HOME"\
+      Description  "StateIsActive"\
+      SFName       "is_active_HOME"\
+      Path         "MOVE_PENHOLDER.HOME.is_active_HOME"\
+      SrcLocation  ""\
+      IsTestPoint  1\
+    }\
+    ChartData {\
+      Name         "counter"\
+      Description  "ChartLocal"\
+      SFName       ""\
+      Path         "counter"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "job"\
+      Description  "ChartLocal"\
+      SFName       ""\
+      Path         "job"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "rot_change"\
+      Description  "ChartLocal"\
+      SFName       ""\
+      Path         "rot_change"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "color_pos"\
+      Description  "ChartLocal"\
+      SFName       ""\
+      Path         "color_pos"\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "sfEvent"\
+      Description  "ActiveChartEvent"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "temporalCounter_i1"\
+      Description  "TemporalCounter"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "temporalCounter_i2"\
+      Description  "TemporalCounter"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+    ChartData {\
+      Name         "temporalCounter_i3"\
+      Description  "TemporalCounter"\
+      SFName       ""\
+      Path         ""\
+      SrcLocation  ""\
+    }\
+  }
+  %return ChartDataElements
+%endfunction

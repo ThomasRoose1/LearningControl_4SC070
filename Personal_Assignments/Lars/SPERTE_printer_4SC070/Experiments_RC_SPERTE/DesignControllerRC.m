@@ -8,7 +8,7 @@ clc;
 %% Parameters
 fs = 1000;         % sample frequency
 Ts = 1/fs;         % sample time
-save_switch = 0;   % switch for saving RC filters: 1 = save, 0 = no save
+save_switch = 1;   % switch for saving RC filters: 1 = save, 0 = no save
 
 
 %% System model, system frequency response measurement and controller.
@@ -24,6 +24,16 @@ C = minreal(shapeit_data.C_tf_z);
 
 %% Exercise XX
 % Closed-loop transfer functions
+T = feedback(G*C, 1);
+T = minreal(T);
+
+Tfrd = feedback(C*Gfrf,1);
+
+poles_T = pole(T);
+
+[z, p, k] = zpkdata(T)
+
+mags = abs(p{1})
 
 %% Exercise XX: RC design.
 %Required outputs:
@@ -39,22 +49,56 @@ L_c = ss(a,b,c,d,Ts);    % Causal part
 z = tf('z',Ts);
 L = z^p_L*L_c; 
 
+figure;
+bode(T); hold on;
+bode(L_c);
+bode(L)
+legend("T",'L_{causal}','L_{non causal}');
+title("T vs L_{causal} vs L_{non causal}")
+
+%%
 %b
+% 1. Create the complex frequency response data
+figure;
+bodemag(1-T*L);
+hold on;
+bodemag(1-Tfrd*L);
+yline(0);
+legend("model 1-TL", "frf 1-TL")
+xlim([10,10^4]);
+title("1-TL of model and frf data")
 
 
+%%
 %c
-fC = [];                                                                    % desired cut-off frequency
+fC = 10;                                                                    % desired cut-off frequency
 fn = 1/(2*Ts);                                                              % Nyquist frequency
-M = [];                                                                     % desired order of low-pass FIR filter
+M = 100;                                                                    % desired order of low-pass FIR filter
 
 num = fir1(M,fC/fn);        % create low-pass FIR filter coefficients
 Q = tf(num,1,Ts);           % create filter
+Q_single = Q;
 Q = Q*Q';                   % use Q'*Q for zero phase shift
 Q = Q/freqresp(Q,0)^2;      % scale DC gain (gain at omega=0) to 1
 
 Q_c = Q*tf(1,[1,zeros(1,M)],Ts); % Extract causal part
 p_Q=M;                      % number of preview samples
 
+figure;
+bodemag(1-Tfrd*L);
+hold on;
+bodemag(Q*(1-Tfrd*L));
+yline(0);
+legend("(1-TL)", "Q(1-TL)")
+title("Effect of Q filter on 1-TL")
+
+%Check Q and Q
+opts = bodeoptions;
+opts.PhaseMatching = 'on';
+figure;
+bode(Q_single, Q, opts);
+legend("Q", "Q^{*}Q")
+title("Q filter")
 %% Make required plots to validate your RC design!
 % Your code here ...
 

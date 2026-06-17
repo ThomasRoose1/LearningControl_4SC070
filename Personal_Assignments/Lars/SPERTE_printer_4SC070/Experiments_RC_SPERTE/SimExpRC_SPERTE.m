@@ -1,16 +1,16 @@
 %SimExpRC_SPERTE   Repetitive Control simulations & experiments.
-clearvars -except p
-close all; clc;
-
-if SPERTE_Ping_Target('Verbose', false)
-    p = SPERTE_Find_Pi;
-else
-    errordlg("Pi is not reachable! check your connection and try again!");
-    return;
-end
+% clearvars -except p
+% close all; clc;
+% 
+% if SPERTE_Ping_Target('Verbose', false)
+%     p = SPERTE_Find_Pi;
+% else
+%     errordlg("Pi is not reachable! check your connection and try again!");
+%     return;
+% end
 
 %% RC settings
-N_trial = 15;       % number of disturbance periods. Max 20
+N_trial = 10;       % number of disturbance periods. Max 20
 N_RC_activate = 5;  % RC is activated after N_RC_activate periods
 
 method = 'simulation';      % select 'simulation' or 'experiment'
