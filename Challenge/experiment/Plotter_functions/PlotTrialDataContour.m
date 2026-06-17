@@ -233,7 +233,7 @@ if update_r_y
     jj = 2;
     for ii = 1:3
         set(cell_handles{ii,jj}{3},'YData',history.r_y(trial,:,ii))
-        set(cell_handles{ii,jj}{4},'YData',history.f(trial+1,:,ii))
+        % set(cell_handles{ii,jj}{4},'YData',history.f(trial+1,:,ii))
     end
 end
 

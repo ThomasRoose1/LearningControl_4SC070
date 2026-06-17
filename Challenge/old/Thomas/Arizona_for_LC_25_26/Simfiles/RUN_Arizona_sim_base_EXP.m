@@ -1,4 +1,4 @@
-    %% Description
+%% Description
 %RUN_Arizona_sim_base   
 % Simulation equivalent of minimum working example for working with Arizona. 
 %
@@ -20,6 +20,8 @@ addpath(genpath('../Target_interfacing'))
 addpath(genpath('../Build'))
 addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
+addpath(genpath('../References'))
+addpath(genpath('../Runfiles'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
@@ -34,14 +36,48 @@ optFFdirections       = [0,1,0];
 % [xref, yref, phiref, t] = reference_rounded_rectangle(Ts);
 % load('test_reference.mat')
 cd ..
-load("References\Reference_X_slow.mat")
+% load("References\Reference_X_slow.mat")
+
+%%%%%%%%%%%%%% Original code %%%%%%%%%%%%%%%%%%%%%%%%%%
 % load("References\small_step_slow_2_1.mat")
 % xref = xref_pos;
-cd Simfiles
-N = 5/Ts;
-[yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
-% xref = xr ef*0;
-t = t';
+% cd Simfiles
+% N = 5/Ts;
+% [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
+% % xref = xr ef*0;
+% t = t';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+% Load trajectories
+% Reference options                                                         
+optSelectRef          = 'Gantry_slow';                                      % Set reference.   Change details in 'select_reference.m'
+optSelectRef2         = 'ref2';                                             % Set reference 2. Change details in 'select_reference.m'
+optRefDirections      = [0,1,0]              % (0=OFF, 1=ON)                % Set direction [y x phi] to apply reference
+optTrialRefSwitch     = -1;                                                 % Set trial # reference change. Update on trial N+1
+
+[yref, xref, phiref, t, Nref] = select_reference(optSelectRef, Ts);             
+yref = round(yref*optRefDirections(1),16); 
+xref = round(xref*optRefDirections(2),16);
+phiref = round(phiref*optRefDirections(3),16);
+
+[yref2, xref2, phiref2, t2, Nref2] = select_reference(optSelectRef2, Ts);             
+yref2 = round(yref2*optRefDirections(1),6); 
+xref2 = round(xref2*optRefDirections(2),6);
+phiref2 = round(phiref2*optRefDirections(3),6);
+
+% Match array lengths ref1 and ref2
+if optTrialRefSwitch > 0
+    if Nref > Nref2
+        % Padzeros to ref2 match array length ref1
+        [yref2, xref2, phiref2, t2] = pad_reference_to_N_zeros(yref2, xref2, phiref2,Nref, Ts);
+    else
+        % Padzeros to ref1 match array length ref2
+        [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,Nref2, Ts);
+    end
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % traj_number = 1;    
 % % size_i = length(yRefs{traj_number});
 % size_i = 1;   
@@ -54,17 +90,47 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 
-% y translation
+%%%%%%%%%%%%%% Original code %%%%%%%%%%%%%%%%%%%%%%%%%%
+% % y translation
+% load('yController.mat')
+% Cy = Cy_CT;
+% load('Py_fit.mat')
+% Py = Py_CT;
+% 
+% 
+% % x translation
+% load('xController.mat');
+% Cx = Cx_CT;
+% load('Px_fit.mat')
+% Px = Px_CT;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+BadControllers        = true;   % y translation 
 load('yController.mat')
-Cy = Cy_CT;
+load('yControllerBad.mat');
+if BadControllers
+    Cy = shapeit_data.C_tf_z;
+else
+    Cy = Cy_DT;
+end
 load('Py_fit.mat')
-Py = Py_CT;
+Py = Py_DT;
 
 % x translation
 load('xController.mat');
-Cx = Cx_CT;
+load('xControllerBad.mat');
+
+if BadControllers
+    Cx = shapeit_data.C_tf_z;
+else
+    Cx = Cx_DT;
+end
 load('Px_fit.mat')
-Px = Px_CT;
+Px = Px_DT;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% EXP version %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % phi rotation
 load('phiController.mat');
@@ -76,10 +142,11 @@ Pphi = Pphi_CT;
 SPy = minreal(feedback(Py_DT, Cy_DT));
 SPx = minreal(feedback(Px_DT, Cx_DT));
 SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
-
+SP = SPx;
    
-% Stack for MIMO, add 0.25 to mirror real setup
-C_zpk = 0.25 * blkdiag(Cy_DT, Cx_DT, Cphi_DT);
+
+% Stack for MIMO
+C_zpk = blkdiag(Cy_DT, Cx_DT, Cphi_DT);
 P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
 
 %% Interconnection.
@@ -102,7 +169,6 @@ history.epsilon = NaN(N_trials,Nref,1);
 history.epsilonNorm = NaN(N_trials,1);
 history.f = NaN(N_trials,Nref,ni); % [Trial, time, dim]
 history.r = NaN(N_trials,Nref,no); % [Tial, time, dim]
-history.r_y = NaN(N_trials,Nref,no);  
 history.p = NaN(N_trials,Nref,no);
 history.t = t;
 history.trials = 1:N_trials;
@@ -110,7 +176,6 @@ history.Nref = Nref;
 
 % Initial FFW and reference
 history.r(1,:,:) = [yref, xref, phiref]; % Order [y x phi]
-history.r_y(1,:,:) = history.r(1,:,:);
 history.f(1,:,:) = zeros(Nref,ni);
 PlotTrialDataContour(history,0,1,0,0,1,0,0,0); % Plots initial input
 PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
@@ -121,26 +186,23 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
     na = 0;  % Order input shaper Cy
     nb = 3;  % Order feedforward Cff
-    theta_j = zeros(na+nb,3);
+    theta = zeros(na+nb,3);
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
+    N = Nref;
+    
     % Weighting parameters (diagonal weighting)
-    % we = 1;                                                                     
-    % wf = 0*1e-14;
-    % wdf = 0*1e-16;
-    % wry = 1e-4;
-    % wdry = 1*1e-2;
     we = 1;                                                                     
-    wf = 1e-12;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
-    wry = 1e-4;
-    wdry = 1e-4;
+    wf = 0*1e-14;
+    wdf = 0*1e-16;
+    wry = 0*1e-4;
+    wdry = 0*1*1e-2;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -167,8 +229,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
     Psi = minreal([Psi_y, Psi_ff]);
-                     
-    
+    history.r_y = zeros(N_trials,Nref,no);                                   % initialize shaped reference
 end
 
 %% Execute trials
@@ -185,13 +246,12 @@ for jj = 1:N_trials
     % Increase trial in plot
     PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
     
-    % Set reference and feedforward. Used like this in simulink, uses the
-    % shaped ref
+    % Set reference and feedforward. Used like this in simulink
     f_j = squeeze(history.f(jj,:,:));
-    r_j = squeeze(history.r_y(jj,:,:));  
+    r_j = squeeze(history.r(jj,:,:));  
         
     % Execute trial.
-    cd('..\Build') % To make sure sjlpr etc. end up in that folder
+    cd('Build') % To make sure sjlpr etc. end up in that folder
     if ~isfolder('build')
         mkdir('build');
     end
@@ -220,9 +280,6 @@ for jj = 1:N_trials
             % Enforce your active direction filter mask [0, 1, 0]
             % This zeros out any accidental learning bleeding into other axes
             f_jplus1 = f_next_raw .* optFFdirections; 
-
-            % set next shaped ref as ref
-            r_y_jplus1 = r_j;
         end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
@@ -236,60 +293,35 @@ for jj = 1:N_trials
             r_active   = squeeze(history.r(jj, :, active_ch))';
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
+            [theta_delta, Phi] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
                 Stf(active_ch, active_ch), PStf(active_ch, active_ch), ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts);
 
-            % % seperate Phi matrix into input shaper and ff
-            % Phi_y = Phi(:,1:na);
-            % Phi_ff = Phi(:,na+1:end);
-
-            % theta update
-            theta_ch = theta_j*optFFdirections' + theta_delta;
-            theta_j(:,active_ch) = theta_ch; 
-
             if polynomial
-                % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);
-                r_y_jplus1 = r_j;
+                theta(1:na) = zeros(na,1);                                      % basically turning off the input shaper, i.e., Cy=1
             end
-
-            % Seperate theta matrix into input shaper and ff in active ch
-            % direction
-            theta_y = theta_j(1:na,active_ch);
-            theta_ff = theta_j(na+1:end,active_ch);
-    
-            % Construct IS and ff controllers
-            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
-            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
-        
-            % C = minreal(Cfb*Cy + Cff); 
+            theta_ch = theta*optFFdirections' + theta_delta;
+            theta(:,active_ch) = theta_ch;
+            f_jplus1_ch = Phi*theta_ch;
             
-            % input shaper update
-            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
+            % Generate the 1D feedforward signal for the next trial
+            % f_next_all_channels = Phi * theta;
             
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-
-            % ff update
-            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
+            % Extract ONLY the column matching our active channel 
+            % (This guarantees a 13000 x 1 vector)
+            % f_next_active = f_next_all_channels(:, 1);
             
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
+            f_jplus1(:, active_ch) = f_jplus1_ch; % Inject strictly into the chosen axis slot
         end
         
         %%       
         % Store in FFW
         history.r(jj+1,:,:) = r_jplus1;
-        history.r_y(jj+1,:,:) = r_y_jplus1;
         history.f(jj+1,:,:) = f_jplus1;
         
-        PlotTrialDataContour(history,jj,0,0,0,1,0,0,1); % Plots new ffw
+        PlotTrialDataContour(history,jj,0,0,0,1,0,0,0); % Plots new ffw
     end
 end

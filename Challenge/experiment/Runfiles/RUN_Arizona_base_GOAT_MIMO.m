@@ -572,6 +572,41 @@ for trial = 0:N_trial-1
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
             f_jplus1(:, 2) = f_jplus1_x; 
+
+            %% update phi
+            %  theta update phi
+            theta_j_phi = theta_j_phi + theta_delta((na_vec(1)+nb_vec(1))+1:end);
+
+            % Seperate theta matrix into input shaper and ff in active ch
+            % direction
+            theta_y_phi = theta_j_phi(1:na_phi);
+            theta_ff_phi = theta_j_phi(na_phi+1:end);
+
+            % Seperate Psi into phi part 
+            Psi_y_r_phi = Psi_y_r(1:N,1:na_phi);
+            Psi_ff_r_phi = Psi_ff_r(1:N,1:nb_phi);
+
+            if polynomial
+                % set IS terms of theta to 0
+                theta_y_phi(1:na_phi) = zeros(na_phi,1);   
+            else
+                % update IS phi
+                % Cy_phi = minreal(1 + Psi_y_phi*theta_y_phi);
+                % r_y_jplus1_phi = brfus_v003(Cy_phi,r_active(:,2),t,Ts);
+                % % r_y_jplus1_phi =  r_active(:,1) + Psi_y_r_phi*theta_y_phi;  
+                % r_y_jplus1(:,3) = r_y_jplus1_phi;
+            end
+
+            % Cff_phi = minreal(Psi_ff_r_phi*theta_ff_phi);                              % Construct feedforward
+        
+            % C = minreal(Cfb*Cy + Cff); 
+
+            % ff update
+            % f_jplus1_phi = brfus_v003(Cff_phi,r_active(:,1),t,Ts);                                        % f = Cff * r
+            f_jplus1_phi = Psi_ff_r_phi*theta_ff_phi;
+            
+            % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
+            f_jplus1(:, 3) = f_jplus1_phi; 
         end
           
         % Update history struct        

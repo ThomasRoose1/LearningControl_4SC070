@@ -30,9 +30,7 @@ BadControllers        = true;
 % optFFmethod           = 'ILC';  
 optFFdirections       = [1,0];    % [x, phi]
 
-% temp
-use_coulomb_basis     = false;
-v_eps = 0;
+
 
 %% Generate reference
 % [xref, yref, phiref, t] = reference_square(Ts);
@@ -141,17 +139,22 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na_x = 0;  % Order input shaper Cy
+    na_x = 1;  % Order input shaper Cy
     na_phi = 0;
     nb_x = 3;  % Order feedforward Cff
-    nb_phi = 3;
+    nb_phi = 0;
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
     n_in = 2;
     n_out = 2;
 
+    % temp
+    use_coulomb_basis     = false;
+    v_eps = 0;
+
+    % init theta
     theta_j_x = zeros(na_x+nb_x, 1);
     theta_j_phi = zeros(na_phi+nb_phi, 1);
 

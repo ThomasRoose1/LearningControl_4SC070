@@ -1,4 +1,4 @@
-    %% Description
+%% Description
 %RUN_Arizona_sim_base   
 % Simulation equivalent of minimum working example for working with Arizona. 
 %
@@ -25,6 +25,7 @@ Ts = get_Arizona_pars();
 N_trials = 15; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
+BadControllers        = true;
 % optFFmethod           = 'ILC';  
 optFFdirections       = [0,1,0];    
 
@@ -54,33 +55,48 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 
-% y translation
+% y translation 
 load('yController.mat')
-Cy = Cy_CT;
+load('yControllerBad.mat');
+if BadControllers
+    Cy = shapeit_data.C_tf_z;
+else
+    Cy = Cy_DT;
+end
 load('Py_fit.mat')
-Py = Py_CT;
+Py = Py_DT;
 
 % x translation
 load('xController.mat');
-Cx = Cx_CT;
+load('xControllerBad.mat');
+
+if BadControllers
+    Cx = shapeit_data.C_tf_z;
+else
+    Cx = Cx_DT;
+end
 load('Px_fit.mat')
-Px = Px_CT;
+Px = Px_DT;
 
 % phi rotation
 load('phiController.mat');
-Cphi = Cphi_CT;
+Cphi = Cphi_DT;
 load('Pphi_fit.mat')
-Pphi = Pphi_CT;
+Pphi = Pphi_DT;
 
 % Interconnection.
-SPy = minreal(feedback(Py_DT, Cy_DT));
-SPx = minreal(feedback(Px_DT, Cx_DT));
-SPphi = minreal(feedback(Pphi_DT, Cphi_DT));
+% Process sensitivity
+SPy = minreal(feedback(Py, Cy));
+SPx = minreal(feedback(Px, Cx));
+SPphi = minreal(feedback(Pphi, Cphi));
 
+% Sensitivity
+Sy = minreal(feedback(1, Py*Cy));
+Sx = minreal(feedback(1, Px*Cx));
    
 % Stack for MIMO, add 0.25 to mirror real setup
-C_zpk = 0.25 * blkdiag(Cy_DT, Cx_DT, Cphi_DT);
-P_zpk = blkdiag(Py_DT, Px_DT, Pphi_DT);
+C_zpk = 0.25 * blkdiag(Cy, Cx, Cphi);
+P_zpk = blkdiag(Py, Px, Pphi);
 
 %% Interconnection.
 [S,PS] = ClosedLoopTransfers(P_zpk,C_zpk);
@@ -121,11 +137,27 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 0;  % Order input shaper Cy
+    na = 3;  % Order input shaper Cy
     nb = 3;  % Order feedforward Cff
-    theta_j = zeros(na+nb,3);
+    nc = 0;
+    
+
+    % Select if coulomb should be used
+    coulomb = false;
+    % Define the 'include_friction' struct
+    include_friction = struct();
+    include_friction.input_shaper = false; % Turn off friction for input shaper
+    include_friction.feedforward  = false;  % Turn on friction for feedforward path
+
+    alpha = 1;
+    v_eps = 1e-4; 
+    if coulomb
+        nc = 1;
+    end
+    theta_j = zeros(na+nb+nc,3);
+
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
@@ -147,6 +179,16 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Wdf = wdf*eye(N); Wdf_sq = sqrt(Wdf);                                       % Penalizes change/derivative of feedforward
     Wry = wry*eye(N); Wry_sq = sqrt(Wry);                                       % Penalizes shaped reference ry
     Wdry = wdry*eye(N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
+    % Define the 'weights' struct
+    % Frequently, these are diagonal penalty matrices (identity scaled by a scalar)
+    weights = struct();
+    weights.We   = We_sq;  % High penalty on tracking error
+    weights.W_ry  = Wry_sq; % Penalty on shaper command magnitude
+    weights.W_dry = Wdry_sq; % Penalty on shaper update rate
+    weights.W_f   = Wf_sq ; % Penalty on feedforward force magnitude
+    weights.W_df  = Wdf_sq; % Penalty on feedforward update rate
+
+
 
     % Parameterize feedforward Cff
     Psi_ff = tf(zeros(1,nb));
@@ -157,6 +199,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         end
         Psi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
+
     % Parameterize input shaper Cy
     Psi_y = tf(zeros(1,na));
     for i = 1:na
@@ -166,9 +209,9 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
         end
         Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
-    Psi = minreal([Psi_y, Psi_ff]);
-                     
     
+    Psi = minreal([Psi_y, Psi_ff]);
+                    
 end
 
 %% Execute trials
@@ -191,10 +234,10 @@ for jj = 1:N_trials
     r_j = squeeze(history.r_y(jj,:,:));  
         
     % Execute trial.
-    cd('..\Build') % To make sure sjlpr etc. end up in that folder
-    if ~isfolder('build')
-        mkdir('build');
+    if ~isfolder('..\Build')
+        mkdir('..\Build');
     end
+    cd('..\Build') % To make sure sjlpr etc. end up in that folder
     sim('Arizona_sim_base.slx')
     cd('..\Simfiles')
     
@@ -212,18 +255,6 @@ for jj = 1:N_trials
     % Select new reference and feedforward.
     if jj ~= N_trials
         r_jplus1 = r_j; % Reference is trial-invariant here
-        
-        if strcmp(optFFmethod, 'ILC')
-            % Pass the entire MIMO closed-loop model, references, and error matrices
-            f_next_raw = feedforwardUpdateSim(PS, t, r_j, e_j, f_j, Ts);
-            
-            % Enforce your active direction filter mask [0, 1, 0]
-            % This zeros out any accidental learning bleeding into other axes
-            f_jplus1 = f_next_raw .* optFFdirections; 
-
-            % set next shaped ref as ref
-            r_y_jplus1 = r_j;
-        end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
             % Identify active channel dynamically inside the loop execution
@@ -236,12 +267,13 @@ for jj = 1:N_trials
             r_active   = squeeze(history.r(jj, :, active_ch))';
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
-                Stf(active_ch, active_ch), PStf(active_ch, active_ch), ...
+            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_Coulomb(na, nb, Psi, Nref, ...
+                Sx, SPx, ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-                e_y_active, r_y_active, f_active, r_active, t, Ts);
+                e_y_active, r_y_active, f_active, r_active, t, Ts, coulomb, v_eps);
+           
 
-            % % seperate Phi matrix into input shaper and ff
+            % seperate Phi matrix into input shaper and ff
             % Phi_y = Phi(:,1:na);
             % Phi_ff = Phi(:,na+1:end);
 
@@ -249,41 +281,28 @@ for jj = 1:N_trials
             theta_ch = theta_j*optFFdirections' + theta_delta;
             theta_j(:,active_ch) = theta_ch; 
 
+            theta_y = theta_ch(1:na);
+            theta_ff = theta_ch(na+1:end);
+
+            r_y_jplus1 = r_j;
             if polynomial
                 % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);
-                r_y_jplus1 = r_j;
-            end
-
-            % Seperate theta matrix into input shaper and ff in active ch
-            % direction
-            theta_y = theta_j(1:na,active_ch);
-            theta_ff = theta_j(na+1:end,active_ch);
-    
-            % Construct IS and ff controllers
-            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
-            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
-        
-            % C = minreal(Cfb*Cy + Cff); 
+                theta_y(1:na) = zeros(na,1);   
+            else
+                % update IS x
+                Cy = minreal(1 + Psi_y*theta_y);
+                r_y_jplus1(:,active_ch) = brfus_v003(Cy,r_active,t,Ts);
+                % r_y_jplus1_x =  r_active + Psi_y_r_x*theta_y_x;  
+                %r_y_jplus1(:,active_ch) = r_y_jplus1;
+            end            
             
-            % input shaper update
-            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
-            
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-
-            % ff update
-            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
-            
-            % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
-            f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
+            Cff = minreal(Psi_ff*theta_ff);     
+            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);   
+            f_jplus1 = zeros(Nref, 3);
+            f_jplus1(:, active_ch) = f_jplus1_ch;
         end
-        
+
+
         %%       
         % Store in FFW
         history.r(jj+1,:,:) = r_jplus1;
