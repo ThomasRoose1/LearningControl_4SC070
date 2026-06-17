@@ -1,4 +1,4 @@
-%% Description
+    %% Description
 %RUN_Arizona_sim_base   
 % Simulation equivalent of minimum working example for working with Arizona. 
 %
