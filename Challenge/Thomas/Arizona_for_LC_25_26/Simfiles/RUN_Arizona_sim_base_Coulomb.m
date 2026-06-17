@@ -22,7 +22,7 @@ addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 15; % 1,...,N_trial
+N_trials = 2; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -155,15 +155,15 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 3;  % Order input shaper Cy
+    na = 0;  % Order input shaper Cy
     nb = 3;  % Order feedforward Cff
     nc = 0;
     
 
     % Select if coulomb should be used
-    coulomb = false;
+    coulomb = true;
     % Define the 'include_friction' struct
     include_friction = struct();
     include_friction.input_shaper = false; % Turn off friction for input shaper
@@ -273,18 +273,6 @@ for jj = 1:N_trials
     % Select new reference and feedforward.
     if jj ~= N_trials
         r_jplus1 = r_j; % Reference is trial-invariant here
-        
-        if strcmp(optFFmethod, 'ILC')
-            % Pass the entire MIMO closed-loop model, references, and error matrices
-            f_next_raw = feedforwardUpdateSim(PS, t, r_j, e_j, f_j, Ts);
-            
-            % Enforce your active direction filter mask [0, 1, 0]
-            % This zeros out any accidental learning bleeding into other axes
-            f_jplus1 = f_next_raw .* optFFdirections; 
-
-            % set next shaped ref as ref
-            r_y_jplus1 = r_j;
-        end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
             % Identify active channel dynamically inside the loop execution
@@ -303,7 +291,7 @@ for jj = 1:N_trials
                 e_y_active, r_y_active, f_active, r_active, t, Ts, coulomb, v_eps);
            
 
-            % % seperate Phi matrix into input shaper and ff
+            % seperate Phi matrix into input shaper and ff
             % Phi_y = Phi(:,1:na);
             % Phi_ff = Phi(:,na+1:end);
 
@@ -311,126 +299,24 @@ for jj = 1:N_trials
             theta_ch = theta_j*optFFdirections' + theta_delta;
             theta_j(:,active_ch) = theta_ch; 
 
+            theta_y = theta_ch(1:na);
+            theta_ff = theta_ch(na+1:end);
+
+            r_y_jplus1 = r_j;
             if polynomial
                 % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);
-                r_y_jplus1 = r_j;
-            end
-
-            % Seperate theta matrix into input shaper and ff in active ch
-            % direction
-            theta_y = theta_j(1:na, active_ch);
-            
-            if coulomb
-                theta_ff_deriv = theta_j(na+1:na+nb, active_ch);
-                theta_coulomb  = theta_j(na+nb+1, active_ch);
+                theta_y(1:na) = zeros(na,1);   
             else
-                theta_ff_deriv = theta_j(na+1:na+nb, active_ch);
-            end
+                % update IS x
+                Cy = minreal(1 + Psi_y*theta_y);
+                r_y_jplus1(:,active_ch) = brfus_v003(Cy,r_active(:,1),t,Ts);
+                % r_y_jplus1_x =  r_active(:,1) + Psi_y_r_x*theta_y_x;  
+                %r_y_jplus1(:,active_ch) = r_y_jplus1;
+            end            
             
-            Cy  = minreal(1 + Psi_y * theta_y);
-            Cff = minreal(Psi_ff * theta_ff_deriv);
-        
-            % C = minreal(Cfb*Cy + Cff); 
-            
-            % input shaper update
-            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
-            
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-
-            % ff update
-            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
-            
-            % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
-            f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
-
-            % --- Convergence Check (Slide 20 / Image formula) ---
-
-            % 1. Extract the feedforward part of your regressor (which is J*Psi)
-            Phi_ff = Phi(:, na+1:end); 
-            
-            % 2. Compute the three terms in the formula
-            % Term 1: Psi^T * J^T * We * J * Psi
-            Term1 = Phi_ff' * We * Phi_ff; 
-            
-            % Term 2: Psi^T * Wf * Psi
-            Term2 = Psi_ff_r' * Wf * Psi_ff_r;
-            
-            % Term 3: Psi^T * Wdf * Psi
-            Term3 = Psi_ff_r' * Wdf * Psi_ff_r;
-            
-            % 3. Build the learning matrix M
-            M = (Term1 + Term2 + Term3) \ Term3;
-            
-            % 4. Compute all singular values of M
-            singular_values = svd(M);
-            max_sv = max(singular_values);
-            
-            fprintf('Maximum singular value for monotonic convergence: %.6f\n', max_sv);
-            if max_sv < 1
-                disp('Result: SUCCESS (< 1). Algorithm is guaranteed to converge monotonically.');
-            else
-                disp('Result: FAIL (>= 1). Weights Wf / Wdf are too low or system is ill-conditioned.');
-            end
+            f_jplus1 = zeros(Nref, 3);
+            f_jplus1(:, active_ch) = Psi_ff_r*theta_ff;
         end
-        
-
-
-        if strcmp(optFFmethod, 'Coulomb')
-            active_ch = find(optFFdirections == 1, 1);
-            e_y_active = squeeze(history.e(jj, :, active_ch))';
-            r_y_active = squeeze(history.r_y(jj, :, active_ch))';
-            f_active   = squeeze(history.f(jj, :, active_ch))';
-            r_active   = squeeze(history.r(jj, :, active_ch))';
-            alpha = 3;
-
-            [theta_next, theta_delta, Psi_block] = FeedforwardUpdate_BuildBasisFunctions(na, nb, Ts,...
-                r_active, e_y_active, r_y_active, f_active,...
-                (theta_j*optFFdirections'), alpha,...
-                weights, include_friction, Sx, SPx);
-
-            
-            
-            % Compute the signals using matrix multiplication
-            signals_stacked = Psi_block * theta_next;
-
-            % Extract the separate signals from the stacked vector
-            N = length(r_active); % trial length
-
-            % The first N rows correspond to the input shaper's delta update contribution
-            % Note: Per equation (4.1), the base input shaper has a feedthrough of 1, 
-            % meaning: r_y = r + Psi_y * theta_y
-            r_y_jplus1_ch = r_active + signals_stacked(1:N);
-
-            % The remaining N rows correspond directly to the feedforward force/command
-            f_jplus1_ch = signals_stacked(N+1:end);
-
-            if polynomial
-                % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);
-                r_y_jplus1 = r_j;
-            end
-
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
-
-            % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
-            f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
-        end 
-
-
-
 
 
         %%       
