@@ -141,9 +141,9 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na_x = 1;  % Order input shaper Cy
+    na_x = 0;  % Order input shaper Cy
     na_phi = 0;
     nb_x = 3;  % Order feedforward Cff
     nb_phi = 3;
