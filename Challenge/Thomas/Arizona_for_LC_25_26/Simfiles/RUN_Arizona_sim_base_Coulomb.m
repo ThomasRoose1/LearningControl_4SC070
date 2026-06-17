@@ -163,7 +163,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     
 
     % Select if coulomb should be used
-    coulomb = true;
+    coulomb = false;
     % Define the 'include_friction' struct
     include_friction = struct();
     include_friction.input_shaper = false; % Turn off friction for input shaper
@@ -395,12 +395,13 @@ for jj = 1:N_trials
                 (theta_j*optFFdirections'), alpha,...
                 weights, include_friction, Sx, SPx);
 
-        
+            
+            
             % Compute the signals using matrix multiplication
             signals_stacked = Psi_block * theta_next;
 
             % Extract the separate signals from the stacked vector
-            N = length(r_active); % Your trial length
+            N = length(r_active); % trial length
 
             % The first N rows correspond to the input shaper's delta update contribution
             % Note: Per equation (4.1), the base input shaper has a feedthrough of 1, 
