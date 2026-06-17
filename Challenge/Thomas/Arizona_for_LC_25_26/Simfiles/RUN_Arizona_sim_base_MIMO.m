@@ -30,6 +30,10 @@ BadControllers        = true;
 % optFFmethod           = 'ILC';  
 optFFdirections       = [1,0];    % [x, phi]
 
+% temp
+use_coulomb_basis     = false;
+v_eps = 0;
+
 %% Generate reference
 % [xref, yref, phiref, t] = reference_square(Ts);
 %[xref, yref, phiref, t] = reference_triangle(Ts);
@@ -137,14 +141,22 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 0;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
-    theta_j = zeros(na+nb,3);
+    na_x = 1;  % Order input shaper Cy
+    na_phi = 0;
+    nb_x = 3;  % Order feedforward Cff
+    nb_phi = 0;
+    na_vec = [na_x; na_phi];
+    nb_vec = [nb_x; nb_phi];
+    n_in = 2;
+    n_out = 2;
+
+    theta_j_x = zeros(na_x+nb_x, 1);
+    theta_j_phi = zeros(na_phi+nb_phi, 1);
 
     % add na zeros in direction vector
-    direction = zeros(na+nb);
+    % direction = zeros(na+nb);
 
     % Weighting parameters (diagonal weighting)
     % we = 1;                                                                     
@@ -153,37 +165,61 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % wry = 1e-4;
     % wdry = 1*1e-2;
     we = 1;                                                                     
-    wf = 1e-8;   % Lowered so the optimizer is allowed to use feedforward
+    wf = 1e-6;   % Lowered so the optimizer is allowed to use feedforward
     wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
     wry = 1e-4;
     wdry = 1e-4;
     % Construct diagonal weighting filters
-    We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
-    Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
-    Wdf = wdf*eye(N); Wdf_sq = sqrt(Wdf);                                       % Penalizes change/derivative of feedforward
-    Wry = wry*eye(N); Wry_sq = sqrt(Wry);                                       % Penalizes shaped reference ry
-    Wdry = wdry*eye(N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
+    We = we*eye(n_in*N); We_sq = sqrt(We);                                           % Penelizes tracking error
+    Wf = wf*eye(n_in*N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
+    Wdf = wdf*eye(n_in*N); Wdf_sq = sqrt(Wdf);                                       % Penalizes change/derivative of feedforward
+    Wry = wry*eye(n_in*N); Wry_sq = sqrt(Wry);                                       % Penalizes shaped reference ry
+    Wdry = wdry*eye(n_in*N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
 
-    % Parameterize feedforward Cff
-    Psi_ff = tf(zeros(1,nb));
-    for i = 1:nb
+    % Parameterize feedforward Cff x
+    Psi_ff_x = tf(zeros(1,nb_x));
+    for i = 1:nb_x
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Psi_ff(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Psi_ff_x(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
-    % Parameterize input shaper Cy
-    Psi_y = tf(zeros(1,na));
-    for i = 1:na
+    % Parameterize input shaper Cy x
+    Psi_y_x = tf(zeros(1,na_x));
+    for i = 1:na_x
         num = zeros(1,i+1);
         for k = 0:i
             num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
         end
-        Psi_y(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        Psi_y_x(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
     end
-    Psi = minreal([Psi_y, Psi_ff]);
-                    
+    Psi_x = minreal([Psi_y_x, Psi_ff_x]);
+
+    % Parameterize feedforward Cff phi
+    Psi_ff_phi = tf(zeros(1,nb_phi));
+    for i = 1:nb_phi
+        num = zeros(1,i+1);
+        for k = 0:i
+            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
+        end
+        Psi_ff_phi(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+    end
+    % Parameterize input shaper Cy phi
+    Psi_y_phi = tf(zeros(1,na_phi));
+    for i = 1:na_phi
+        num = zeros(1,i+1);
+        for k = 0:i
+            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
+        end
+        Psi_y_phi(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+    end
+    Psi_phi= minreal([Psi_y_phi, Psi_ff_phi]);
+
+    % Build Psi block
+    Psi_blocks = cell(n_in, 1);
+    Psi_blocks{1} = Psi_x;
+    Psi_blocks{2} = Psi_phi;                  
 end
 
 %% Execute trials
@@ -245,89 +281,54 @@ for jj = 1:N_trials
             active_ch = find(optFFdirections == 1, 1);
             
             % Extract CURRENT trial data for the active channel strictly as 1D vectors
-            e_y_active = squeeze(history.e(jj, :, active_ch))'; 
-            r_y_active = squeeze(history.r_y(jj, :, active_ch))';
-            f_active   = squeeze(history.f(jj, :, active_ch))';
-            r_active   = squeeze(history.r(jj, :, active_ch))';
+            e_y_active = [squeeze(history.e(jj, :, 2))', squeeze(history.e(jj, :, 3))']; 
+            r_y_active = [squeeze(history.r_y(jj, :, 2))', squeeze(history.r_y(jj, :, 3))'];
+            f_active   = [squeeze(history.f(jj, :, 2))', squeeze(history.f(jj, :, 3))'];
+            r_active   = [squeeze(history.r(jj, :, 2))', squeeze(history.r(jj, :, 3))'];
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            % [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
-            %     Sx, SPx, ...
-            %     We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-            %     e_y_active, r_y_active, f_active, r_active, t, Ts);
-            
+            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_MIMO( ...
+                    na_vec, nb_vec, Psi_blocks, Nref, S, PS, ...
+                    We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
+                    e_y_active, r_y_active, f_active, r_active, t, Ts, ...
+                    use_coulomb_basis, v_eps);
 
+            %% update x
+            %  theta update x
+            theta_j_x = theta_j_x + theta_delta(1:(na_vec(1)+nb_vec(1)));
 
-            % % seperate Phi matrix into input shaper and ff
-            % Phi_y = Phi(:,1:na);
-            % Phi_ff = Phi(:,na+1:end);
+            % Seperate theta matrix into input shaper and ff in active ch
+            % direction
+            theta_y_x = theta_j_x(1:na_x);
+            theta_ff_x = theta_j_x(na_x+1:end);
 
-            % theta update
-            theta_ch = theta_j*optFFdirections' + theta_delta;
-            theta_j(:,active_ch) = theta_ch; 
+            % Seperate Psi into x part 
+            Psi_y_r_x = Psi_y_r(1:N,1:na_x);
+            Psi_ff_r_x = Psi_ff_r(1:N,1:nb_x);
 
             r_y_jplus1 = r_j;
             if polynomial
                 % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);        
+                theta_y_x(1:na_x) = zeros(na_x,1);   
+            else
+                % update IS x
+                Cy_x = minreal(1 + Psi_y_x*theta_y_x);
+                r_y_jplus1_x = brfus_v003(Cy_x,r_active(:,1),t,Ts);
+                % r_y_jplus1_x =  r_active(:,1) + Psi_y_r_x*theta_y_x;  
+                r_y_jplus1(:,2) = r_y_jplus1_x;
             end
 
-            % Seperate theta matrix into input shaper and ff in active ch
-            % direction
-            theta_y = theta_j(1:na,active_ch);
-            theta_ff = theta_j(na+1:end,active_ch);
-    
-            % Construct IS and ff controllers
-            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
-            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
+            % Cff_x = minreal(Psi_ff_r_x*theta_ff_x);                              % Construct feedforward
         
             % C = minreal(Cfb*Cy + Cff); 
-            
-            % input shaper update
-            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
-            
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
 
             % ff update
-            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
+            % f_jplus1_x = brfus_v003(Cff_x,r_active(:,1),t,Ts);                                        % f = Cff * r
+            f_jplus1_x = Psi_ff_r_x*theta_ff_x;
             
             % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
-
-            % --- Convergence Check (Slide 20 / Image formula) ---
-
-            % 1. Extract the feedforward part of your regressor (which is J*Psi)
-            Phi_ff = Phi(:, na+1:end); 
-            
-            % 2. Compute the three terms in the formula
-            % Term 1: Psi^T * J^T * We * J * Psi
-            Term1 = Phi_ff' * We * Phi_ff; 
-            
-            % Term 2: Psi^T * Wf * Psi
-            Term2 = Psi_ff_r' * Wf * Psi_ff_r;
-            
-            % Term 3: Psi^T * Wdf * Psi
-            Term3 = Psi_ff_r' * Wdf * Psi_ff_r;
-            
-            % 3. Build the learning matrix M
-            M = (Term1 + Term2 + Term3) \ Term3;
-            
-            % 4. Compute all singular values of M
-            singular_values = svd(M);
-            max_sv = max(singular_values);
-            
-            fprintf('Maximum singular value for monotonic convergence: %.6f\n', max_sv);
-            if max_sv < 1
-                disp('Result: SUCCESS (< 1). Algorithm is guaranteed to converge monotonically.');
-            else
-                disp('Result: FAIL (>= 1). Weights Wf / Wdf are too low or system is ill-conditioned.');
-            end
+            f_jplus1(:, 2) = f_jplus1_x; 
         end
         
         %%       
