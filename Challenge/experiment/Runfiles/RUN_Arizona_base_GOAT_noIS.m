@@ -245,10 +245,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
-    wf = 1*1e-8;
+    wf = 1*1e-6;
     wdf = 1*1e-14;
-    wry = 1e-4;
-    wdry = 1*1e-4;
+    wry = 1*1e-18;
+    wdry = 1*1e-2;
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -498,10 +498,13 @@ for trial = 0:N_trial-1
             active_ch = find(optFFdirections == 1, 1);
             
             % Extract CURRENT trial data for the active channel strictly as 1D vectors
-            e_y_active = squeeze(history.e(jj, :, active_ch))'; 
+            y_active = squeeze(history.p(jj, :, active_ch))';
+            e_active = squeeze(history.e(jj, :, active_ch))'; 
             r_y_active = squeeze(history.r_y(jj, :, active_ch))';
             f_active   = squeeze(history.f(jj, :, active_ch))';
             r_active   = squeeze(history.r(jj, :, active_ch))';
+
+            e_y_active = r_y_active - y_active;
             
             % Call the update function passing the specific diagonal terms of the MIMO system
             [theta_delta] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...

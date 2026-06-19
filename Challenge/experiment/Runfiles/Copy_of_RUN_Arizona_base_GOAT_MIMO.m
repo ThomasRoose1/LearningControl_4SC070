@@ -201,7 +201,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     na_x = 0;  % Order input shaper Cy
     na_phi = 0;
     nb_x = 3;  % Order feedforward Cff
-    nb_phi = 3;
+    nb_phi = 5;
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
     n_in = 2;
@@ -229,10 +229,19 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     wdry_x = 1e-4;
     % phi weights
     we_phi = 1;                                                                     
-    wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
-    wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wf_phi = 1e5;   % Lowered so the optimizer is allowed to use feedforward
+    wdf_phi = 1e-1;  % Keeps the high-frequency derivatives smooth
     wry_phi = 1e-4;
     wdry_phi = 1e-4;
+    
+    we_x   = 1e5;
+    we_phi = 1e2;%*    0.5*L*pi/180;
+    
+    wf_x = 1e-3;
+    wf_phi = 1e-3;
+    wdf_x = 1e-1;
+    wdf_phi = 1e-1;
+
     % Construct diagonal weighting filters
     We = blkdiag(we_x*eye(Nref), we_phi*eye(Nref));   We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = blkdiag(wf_x*eye(Nref), wf_phi*eye(Nref));   Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -263,11 +272,8 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % Parameterize feedforward Cff phi
     Psi_ff_phi = tf(zeros(1,nb_phi));
     for i = 1:nb_phi
-        num = zeros(1,i+1);
-        for k = 0:i
-            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
-        end
-        Psi_ff_phi(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        num = [zeros(1,i-1),1];
+        Psi_ff_phi(i) = tf(num,1,Ts,'Variable', 'z^-1');
     end
     % Parameterize input shaper Cy phi
     Psi_y_phi = tf(zeros(1,na_phi));
