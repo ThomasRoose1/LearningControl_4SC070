@@ -139,12 +139,12 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 1;                                                         % Select 1 for input shaper off
+    polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
     na_x = 1;  % Order input shaper Cy
-    na_phi = 0;
+    na_phi = 1;
     nb_x = 3;  % Order feedforward Cff
-    nb_phi = 0;
+    nb_phi = 3;
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
     n_in = 2;
@@ -284,11 +284,15 @@ for jj = 1:N_trials
             active_ch = find(optFFdirections == 1, 1);
             
             % Extract CURRENT trial data for the active channel strictly as 1D vectors
-            e_y_active = [squeeze(history.e(jj, :, 2))', squeeze(history.e(jj, :, 3))']; 
+            y_active = [squeeze(history.p(jj, :, 2))', squeeze(history.p(jj, :, 3))'];
+            e_active = [squeeze(history.e(jj, :, 2))', squeeze(history.e(jj, :, 3))']; 
             r_y_active = [squeeze(history.r_y(jj, :, 2))', squeeze(history.r_y(jj, :, 3))'];
             f_active   = [squeeze(history.f(jj, :, 2))', squeeze(history.f(jj, :, 3))'];
             r_active   = [squeeze(history.r(jj, :, 2))', squeeze(history.r(jj, :, 3))'];
             
+            % Compute erros w.r.t sh
+            e_y_active =  r_y_active - y_active;
+
             % Call the update function passing the specific diagonal terms of the MIMO system
             [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_MIMO( ...
                     na_vec, nb_vec, Psi_blocks, Nref, S, PS, ...
