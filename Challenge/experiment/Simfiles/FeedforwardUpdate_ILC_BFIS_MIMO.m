@@ -81,7 +81,7 @@ for i = 1:n_in
         error('Psi_blocks{%d} must contain na_i + nb_i basis functions.', i);
     end
 
-    r_i = r(:,i);
+    r_i = r(:,1);
 
     %% -------------------------------------------------------------
     %  Input-shaper basis functions for input channel i
