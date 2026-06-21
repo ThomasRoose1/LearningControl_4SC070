@@ -58,7 +58,7 @@ t = t';
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
 % y translation 
-load('yController.mat')
+% load('yController.mat')
 load('yControllerBad.mat');
 if BadControllers
     Cy = shapeit_data.C_tf_z;
@@ -69,7 +69,7 @@ load('Py_fit.mat')
 Py = Py_DT;
 
 % x translation
-load('xController.mat');
+% load('xController.mat');
 load('xControllerBad.mat');
 
 if BadControllers
@@ -100,7 +100,7 @@ Ty = [0.5   0.5;
 Pdec = Ty*Pz*Tu;
 
 Pdec_sim = Pdec;
-% Pdec_sim.D = zeros(2,2);
+Pdec_sim.D = zeros(2,2);
 
 %% Interconnection.
 [S,PS] = ClosedLoopTransfers(Pdec,C_diag);
@@ -146,12 +146,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % order of FF and IS filters
     na_x = 0;  % Order input shaper Cy
     na_phi = 0;
-    nb_x = 0;  % Order feedforward Cff
-    nb_phi = 0;
+    nb_x = 5;  % Order feedforward Cff
+    nb_phi = 5;
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
-
-    % dimensions
     n_in = 2;
     n_out = 2;
 
@@ -173,8 +171,8 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % wry = 1e-4;
     % wdry = 1*1e-2;
     we = 1;                                                                     
-    wf = 1e-6;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
+    wf = 1e6;   % Lowered so the optimizer is allowed to use feedforward
+    wdf = 1;  % Keeps the high-frequency derivatives smooth
     wry = 1e-4;
     wdry = 1e-4;
     % Construct diagonal weighting filters
@@ -187,11 +185,9 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % Parameterize feedforward Cff x
     Psi_ff_x = tf(zeros(1,nb_x));
     for i = 1:nb_x
-        num = zeros(1,i+1);
-        for k = 0:i
-            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
-        end
-        Psi_ff_x(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        % Create a pure discrete-time delay z^{-(i-1)}
+        num = [zeros(1, i-1), 1]; 
+        Psi_ff_x(i) = tf(num, 1, Ts, 'Variable', 'z^-1');
     end
     % Parameterize input shaper Cy x
     Psi_y_x = tf(zeros(1,na_x));
@@ -204,14 +200,12 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     end
     Psi_x = minreal([Psi_y_x, Psi_ff_x]);
 
-    % Parameterize feedforward Cff phi
+    % Parameterize feedforward Cff (FIR Filter)
     Psi_ff_phi = tf(zeros(1,nb_phi));
     for i = 1:nb_phi
-        num = zeros(1,i+1);
-        for k = 0:i
-            num(k+1) = (-1)^k * nchoosek(i,k);                                  % derivative basis function, i.e., (1-z^-1)/Ts . Feel free to play with the basis functions.
-        end
-        Psi_ff_phi(i) = minreal(tf(num,Ts^i,Ts,'Variable','z^-1'));
+        % Create a pure discrete-time delay z^{-(i-1)}
+        num = [zeros(1, i-1), 1]; 
+        Psi_ff_phi(i) = tf(num, 1, Ts, 'Variable', 'z^-1');
     end
     % Parameterize input shaper Cy phi
     Psi_y_phi = tf(zeros(1,na_phi));
@@ -254,8 +248,7 @@ for jj = 1:N_trials
     if ~isfolder('build')
         mkdir('build');
     end
-    % sim('Arizona_sim_base.slx')
-    sim('Arizona_sim_base_MIMO.slx')
+    sim('Arizona_sim_base.slx')
     cd('..\Simfiles')
     
     [epsilon, epsilon_vec, refc] = estimate_contour_error(r_j(:,2), r_j(:,1), y_j(:,2), y_j(:,1), 2000, 1);
