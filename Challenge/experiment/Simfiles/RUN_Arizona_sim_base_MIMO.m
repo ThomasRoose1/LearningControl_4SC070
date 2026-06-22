@@ -186,12 +186,12 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
 
     we_x = 1;                                                                     
     wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
-    wdf_x = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
     wry_x = 1e-15;
     wdry_x = 1e-20;
     % phi weights
     we_phi = 1;                                                                     
-    wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
+    wf_phi = 1e-20;   % Lowered so the optimizer is allowed to use feedforward
     wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
     wry_phi = 1e-4;
     wdry_phi = 1e-4;
