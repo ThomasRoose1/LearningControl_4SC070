@@ -17,7 +17,7 @@ Tu = [0.5, -0.3817;
       0.5, 0.3817];
 Ty = [0.5   0.5;
       -0.3817 0.3817];
-y_c = y * (inv(Ty).');
+y_c = y * (inv(Ty).');   
 
 %% Identify Dwell Time and Compute Errors
 % Find all indices where the reference r_y(:,1) is in the dwell state (~0.1)
