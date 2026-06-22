@@ -23,7 +23,7 @@ addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 15; % 1,...,N_trial
+N_trials = 35; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -40,6 +40,7 @@ optFFdirections       = [1,0];    % [x, phi]
 cd ..
 load("References\Reference_X_slow.mat")
 % load("References\small_step_slow_2_1.mat")
+% load('Ref_19_6_05sec_v2.mat');
 % xref = xref_pos;
 cd Simfiles
 N = 5/Ts;
@@ -144,10 +145,12 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 if strcmp(optFFmethod, 'ILC_BF_IS')
     polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na_x = 0;  % Order input shaper Cy
+    na_x = 3;  % Order input shaper Cy
     na_phi = 0;
-    nb_x = 0;  % Order feedforward Cff
-    nb_phi = 0;
+    nb_x = 3;  % Order feedforward Cff
+    nb_phi = 3;
+
+    % stack em
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
 
@@ -167,22 +170,39 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % direction = zeros(na+nb);
 
     % Weighting parameters (diagonal weighting)
-    % we = 1;                                                                     
-    % wf = 0*1e-14;
-    % wdf = 0*1e-16;
-    % wry = 1e-4;
-    % wdry = 1*1e-2;
-    we = 1;                                                                     
-    wf = 1e-6;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-14;  % Keeps the high-frequency derivatives smooth
-    wry = 1e-4;
-    wdry = 1e-4;
+
+    % ---- works, V in x too high ---
+    % we_x = 1;                                                                     
+    % wf_x = 1e-9;   % Lowered so the optimizer is allowed to use feedforward
+    % wdf_x = 1e-8;  % Keeps the high-frequency derivatives smooth
+    % wry_x = 1e-5;
+    % wdry_x = 1e-6;
+    % % phi weights
+    % we_phi = 1;                                                                     
+    % wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
+    % wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
+    % wry_phi = 1e-4;
+    % wdry_phi = 1e-4;
+
+    we_x = 1;                                                                     
+    wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
+    wdf_x = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wry_x = 1e-15;
+    wdry_x = 1e-20;
+    % phi weights
+    we_phi = 1;                                                                     
+    wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
+    wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wry_phi = 1e-4;
+    wdry_phi = 1e-4;
+
+
     % Construct diagonal weighting filters
-    We = we*eye(n_in*N); We_sq = sqrt(We);                                           % Penelizes tracking error
-    Wf = wf*eye(n_in*N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
-    Wdf = wdf*eye(n_in*N); Wdf_sq = sqrt(Wdf);                                       % Penalizes change/derivative of feedforward
-    Wry = wry*eye(n_in*N); Wry_sq = sqrt(Wry);                                       % Penalizes shaped reference ry
-    Wdry = wdry*eye(n_in*N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
+    We = blkdiag(we_x*eye(Nref), we_phi*eye(Nref));   We_sq = sqrt(We);                                           % Penelizes tracking error
+    Wf = blkdiag(wf_x*eye(Nref), wf_phi*eye(Nref));   Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
+    Wdf = blkdiag(wdf_x*eye(Nref), wdf_phi*eye(Nref));   Wdf_sq = sqrt(Wdf);                                      % Penalizes change/derivative of feedforward
+    Wry = blkdiag(wry_x*eye(Nref), wry_phi*eye(Nref));   Wry_sq = sqrt(Wry);                                      % Penalizes shaped reference ry
+    Wdry = blkdiag(wdry_x*eye(Nref), wdry_phi*eye(Nref));   Wdry_sq = sqrt(Wdry);    
 
     % Parameterize feedforward Cff x
     Psi_ff_x = tf(zeros(1,nb_x));
@@ -244,10 +264,13 @@ for jj = 1:N_trials
     % Increase trial in plot
     PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
     
-    % Set reference and feedforward. Used like this in simulink, uses the
-    % shaped ref
-    f_j = squeeze(history.f(jj,:,:));
-    r_j = squeeze(history.r_y(jj,:,:));  
+    % base reference and current shaped reference
+    r_base_j = squeeze(history.r(jj,:,:));      % fixed, unshaped reference
+    r_y_j    = squeeze(history.r_y(jj,:,:));    % shaped reference used by feedback
+    f_j      = squeeze(history.f(jj,:,:));      % feedforward input
+
+    % Simulink expects the shaped reference under the variable name r_j
+    r_j = r_y_j;
         
     % Execute trial.
     cd('..\Build') % To make sure sjlpr etc. end up in that folder
@@ -271,7 +294,16 @@ for jj = 1:N_trials
     
     % Select new reference and feedforward.
     if jj ~= N_trials
-        r_jplus1 = r_j; % Reference is trial-invariant here
+        % r_jplus1 = squeeze(history.r(jj,:,:)); % set the ref same as previous ref
+
+        % The base reference must stay fixed from trial to trial
+        r_base_jplus1 = r_base_j;
+    
+        % Default: unshaped reference for all channels
+        r_y_jplus1 = r_base_jplus1;
+    
+        % Default: no feedforward for all channels
+        f_jplus1 = zeros(Nref, 3);
         
         if strcmp(optFFmethod, 'ILC')
             % Pass the entire MIMO closed-loop model, references, and error matrices
@@ -282,7 +314,7 @@ for jj = 1:N_trials
             f_jplus1 = f_next_raw .* optFFdirections; 
 
             % set next shaped ref as ref
-            r_y_jplus1 = r_j;
+            r_y_jplus1 = r_jplus1;
         end
 
         if strcmp(optFFmethod, 'ILC_BF_IS')
@@ -294,7 +326,7 @@ for jj = 1:N_trials
             e_active = [squeeze(history.e(jj, :, 2))', squeeze(history.e(jj, :, 3))']; 
             r_y_active = [squeeze(history.r_y(jj, :, 2))', squeeze(history.r_y(jj, :, 3))'];
             f_active   = [squeeze(history.f(jj, :, 2))', squeeze(history.f(jj, :, 3))'];
-            r_active   = [squeeze(history.r(jj, :, 2))', squeeze(history.r(jj, :, 3))'];
+            r_base_active   = [squeeze(history.r(jj, :, 2))', squeeze(history.r(jj, :, 3))'];
             
             % Compute erros w.r.t sh
             e_y_active =  r_y_active - y_active;
@@ -303,7 +335,7 @@ for jj = 1:N_trials
             [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_MIMO( ...
                     na_vec, nb_vec, Psi_blocks, Nref, S, PS, ...
                     We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-                    e_y_active, r_y_active, f_active, r_active, t, Ts, ...
+                    e_y_active, r_y_active, f_active, r_base_active, t, Ts, ...
                     use_coulomb_basis, v_eps);
 
             %% update x
@@ -319,16 +351,13 @@ for jj = 1:N_trials
             Psi_y_r_x = Psi_y_r(1:N,1:na_x);
             Psi_ff_r_x = Psi_ff_r(1:N,1:nb_x);
 
-            r_y_jplus1 = r_j;
             if polynomial
                 % set IS terms of theta to 0
                 theta_y_x(1:na_x) = zeros(na_x,1);   
             else
                 % update IS x
                 Cy_x = minreal(1 + Psi_y_x*theta_y_x);
-                r_y_jplus1_x = brfus_v003(Cy_x,r_active(:,1),t,Ts);
-                % r_y_jplus1_x =  r_active(:,1) + Psi_y_r_x*theta_y_x;  
-                r_y_jplus1(:,2) = r_y_jplus1_x;
+                r_y_jplus1(:, 2) = brfus_v003(Cy_x, r_base_active(:,1), t, Ts);
             end
 
             % Cff_x = minreal(Psi_ff_r_x*theta_ff_x);                              % Construct feedforward
@@ -381,9 +410,9 @@ for jj = 1:N_trials
         
         %%       
         % Store in FFW
-        history.r(jj+1,:,:) = r_jplus1;
+        history.r(jj+1,:,:)   = r_base_jplus1;
         history.r_y(jj+1,:,:) = r_y_jplus1;
-        history.f(jj+1,:,:) = f_jplus1;
+        history.f(jj+1,:,:)   = f_jplus1;
         
         PlotTrialDataContour(history,jj,0,0,0,1,0,0,1); % Plots new ffw
     end

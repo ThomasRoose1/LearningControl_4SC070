@@ -24,7 +24,7 @@ addpath(genpath('../ILC_updates'))
 % addpath(genpath('../References'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 20; % 1,...,N_trial
+N_trials = 40; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -58,7 +58,6 @@ t = t';
 
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
-
 % y translation 
 load('yController.mat')
 load('yControllerBad.mat');
@@ -88,11 +87,27 @@ Cphi = Cphi_DT;
 load('Pphi_fit.mat')
 Pphi = Pphi_DT;
 
-%% Teun Code 
+% MIMO plant
+C_diag =  blkdiag(Cx, Cphi);
+load('P_centralized.mat');
+P_zpk = Pz; % needs 1/4?
+
+% decoupling matrices
+Tu = [0.5, -0.3817;
+      0.5, 0.3817];
+Ty = [0.5   0.5;
+      -0.3817 0.3817];
+
+Pdec = Ty*Pz*Tu;
+
+Pdec_sim = Pdec;
+
+% gain correction
 Cy_cl   = 0.25 * Cy;
 Cx_cl   = 0.25 * Cx;
 Cphi_cl = 0.25 * Cphi;
 
+% closed loop transfers
 SPy   = minreal(feedback(Py, Cy_cl));
 SPx   = minreal(feedback(Px, Cx_cl));
 SPphi = minreal(feedback(Pphi, Cphi_cl));
@@ -172,10 +187,16 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % wdf = 0*1e-16;
     % wry = 1e-4;
     % wdry = 1*1e-2;
+    % we = 1;                                                                     
+    % wf   = 1e-9;
+    % wdf  = 1e-8;
+    % wry  = 1e-5;
+    % wdry = 1e-6;
+
     we = 1;                                                                     
-    wf   = 1e-9;
-    wdf  = 3e-8;
-    wry  = 1e-5;
+    wf = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
+    wdf = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wry = 1e-5;
     wdry = 1e-6;
 
     % Construct diagonal weighting filters
@@ -282,7 +303,7 @@ for jj = 1:N_trials
         PlotTrialDataContour(history,jj,0,0,0,0,0,1,0); % Plots error and position
         
         % Select new reference and feedforward.
- if jj ~= N_trials
+        if jj ~= N_trials
     
         % The base reference must stay fixed from trial to trial
         r_base_jplus1 = r_base_j;
@@ -293,7 +314,7 @@ for jj = 1:N_trials
         % Default: no feedforward for all channels
         f_jplus1 = zeros(Nref, 3);
     
-    if strcmp(optFFmethod, 'ILC_BF_IS')
+        if strcmp(optFFmethod, 'ILC_BF_IS')
     
             active_ch = find(optFFdirections == 1, 1);
             r0_active = squeeze(history.r(1,:,active_ch));
@@ -308,102 +329,36 @@ for jj = 1:N_trials
             f_active   = squeeze(history.f(jj, :, active_ch));   f_active   = f_active(:);
             r_active   = squeeze(history.r(jj, :, active_ch));   r_active   = r_active(:);
     
-            % IMPORTANT: error w.r.t. shaped reference
+            % error w.r.t. shaped reference
             e_y_active = r_y_active - y_active;
     
             [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_Teun( ...
                 na, nb, Psi, Nref, ...
-                Sx, SPx, ...
+                S(active_ch, active_ch), PS(active_ch, active_ch), ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
                 e_y_active, r_y_active, f_active, r_active, t, Ts);
+
     
-            % Current measured error before computing the next update
-            current_e_norm = norm(e_y_active);
-            
-            % By default, assume we accept the update
-            accept_update = true;
-            
-            % Check whether the current measured trial improved
-            if current_e_norm < best_e_norm
-            
-                % Accept current trial as new best
-                best_e_norm    = current_e_norm;
-                best_trial     = jj;
-                best_theta_j   = theta_j;
-                best_f_active  = f_active;
-                best_ry_active = r_y_active;
-            
-                no_improve_count = 0;
-            
-                fprintf('New best trial: %d, ||e_y|| = %.4e\n', best_trial, best_e_norm);
-            
+            % Parameter update
+            theta_ch = theta_j(:, active_ch) + theta_delta;
+            theta_j(:, active_ch) = theta_ch;
+        
+            theta_y  = theta_ch(1:na);
+            theta_ff = theta_ch(na+1:end);
+        
+            % Use the fixed base reference, not the previous shaped reference
+            r_base_active = r_base_jplus1(:, active_ch);
+        
+            if polynomial
+                r_y_jplus1(:, active_ch) = r_base_active;
             else
-            
-                % Reject: current trial is worse than the best measured trial
-                no_improve_count = no_improve_count + 1;
-                learning_gain = max(gain_down * learning_gain, learning_gain_min);
-            
-                fprintf('No improvement. Best trial remains %d. Reducing learning gain to %.4f\n', ...
-                    best_trial, learning_gain);
-            
-                % Revert parameters to the best known ones
-                theta_j = best_theta_j;
-            
-                % Use the best accepted signals again for the next trial
-                r_y_jplus1(:, active_ch) = best_ry_active(:);
-                f_jplus1(:, active_ch)   = best_f_active(:);
-            
-                accept_update = false;
-            
-                % Stop if repeated non-improvement
-                if no_improve_count >= patience
-                    fprintf('Stopping early. Best trial was %d with ||e_y|| = %.4e\n', ...
-                        best_trial, best_e_norm);
-                    break;
-                end
+                Cshaper = minreal(1 + Psi_y * theta_y);
+                r_y_jplus1(:, active_ch) = brfus_v003(Cshaper, r_base_active, t, Ts);
             end
-            
-            if accept_update
-            
-                % Apply learning gain
-                theta_delta = learning_gain * theta_delta;
-            
-                % Prediction check
-                e_pred = e_y_active - Phi * theta_delta;
-                fprintf('Trial %d prediction: ||e_y|| = %.4e, ||e_pred|| = %.4e, ratio = %.4f\n', ...
-                    jj, norm(e_y_active), norm(e_pred), norm(e_pred)/norm(e_y_active));
-            
-                % Parameter update
-                theta_ch = theta_j(:, active_ch) + theta_delta;
-                theta_j(:, active_ch) = theta_ch;
-            
-                theta_y  = theta_ch(1:na);
-                theta_ff = theta_ch(na+1:end);
-            
-                % Use the fixed base reference, not the previous shaped reference
-                r_base_active = r_base_jplus1(:, active_ch);
-            
-                if polynomial
-                    r_y_jplus1(:, active_ch) = r_base_active;
-                else
-                    Cshaper = minreal(1 + Psi_y * theta_y);
-                    r_y_jplus1(:, active_ch) = brfus_v003(Cshaper, r_base_active, t, Ts);
-                end
-            
-                Cff = minreal(Psi_ff * theta_ff);
-                f_jplus1(:, active_ch) = brfus_v003(Cff, r_base_active, t, Ts);
-            
-                fprintf('Trial %d next signals: max|r_y| = %.4e, max|f| = %.4e, max|df| = %.4e\n', ...
-                    jj, ...
-                    max(abs(r_y_jplus1(:,active_ch))), ...
-                    max(abs(f_jplus1(:,active_ch))), ...
-                    max(abs(diff(f_jplus1(:,active_ch))) / Ts));
-            
-                fprintf('Trial %d ||r_y-r|| = %.4e, ||f|| = %.4e\n', ...
-                    jj, ...
-                    norm(r_y_jplus1(:,active_ch) - r_base_active), ...
-                    norm(f_jplus1(:,active_ch)));
-            end
+        
+            Cff = minreal(Psi_ff * theta_ff);
+            f_jplus1(:, active_ch) = brfus_v003(Cff, r_base_active, t, Ts);
+        end
     
         % Store fixed reference, shaped reference, and feedforward
         history.r(jj+1,:,:)   = r_base_jplus1;
@@ -412,6 +367,4 @@ for jj = 1:N_trials
     
         PlotTrialDataContour(history,jj,0,0,0,1,0,0,1);
     end
- end
-
 end
