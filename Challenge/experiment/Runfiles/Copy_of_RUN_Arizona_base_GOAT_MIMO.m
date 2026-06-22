@@ -18,7 +18,7 @@ init_Arizona
 % =========================================================================
 
 % Build options
-optBuild              = false;              % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
+optBuild              = true;              % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
 optSDIviewer          = false;               % (true/false)                  % Open simulink data inspector
 clear_optBuild                                                             
 

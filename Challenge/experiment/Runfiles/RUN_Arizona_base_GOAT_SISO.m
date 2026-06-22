@@ -18,7 +18,7 @@ init_Arizona
 % =========================================================================
 
 % Build options
-optBuild              = true;               % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
+optBuild              = false;               % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
 optSDIviewer          = false;               % (true/false)                  % Open simulink data inspector
 clear_optBuild                                                             
 
@@ -196,6 +196,7 @@ history.t = t;
 history.trials = 1:N_trial;
 history.Nref = Nref;
 
+
 % Penholder struct
 pen.onoff      = PenONOFF;
 pen.manualauto = ColorManualAuto;
@@ -227,10 +228,10 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Stf = tf(S1); PStf = tf(PS1);
     
     N = Nref;
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 3;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
+    na = 2;  % Order input shaper Cy
+    nb = 2;  % Order feedforward Cff
     nc = 0;  % extra bf
     use_coulomb_basis = false;
     if use_coulomb_basis
@@ -239,16 +240,20 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     ntheta = na+nb+nc;
     theta_j = zeros(ntheta,3);
 
+    history.theta = NaN(N_trial, ntheta, no);
+
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
-    wf = 1*1e-6;
-    wdf = 1*1e-14;
-    wry = 1*1e-18;
-    wdry = 1*1e-2;
+    wf = 1*1e-7;  % -6
+    wdf = 1*1e-6; % -8
+%     wry = 1*1e-18;
+%     wdry = 1*1e-2;
+    wry = 1e-5; %-5
+    wdry = 1e-8; %-6
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -516,6 +521,7 @@ for trial = 0:N_trial-1
             % theta update
             theta_ch = theta_j*optFFdirections' + theta_delta;
             theta_j(:,active_ch) = theta_ch; 
+            history.theta(jj, :, :) = theta_j;
 
 
             r_y_jplus1 = r_j;

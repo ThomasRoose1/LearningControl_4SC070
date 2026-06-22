@@ -18,7 +18,7 @@ init_Arizona
 % =========================================================================
 
 % Build options
-optBuild              = true;               % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
+optBuild              = false;               % (true/false)                 % When building, always make sure the POWER IS TURNED OFF
 optSDIviewer          = false;               % (true/false)                  % Open simulink data inspector
 clear_optBuild                                                             
 
@@ -229,10 +229,12 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     N = Nref;
     polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 3;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
+    na = 2;  % Order input shaper Cy
+    nb = 2;  % Order feedforward Cff
     nc = 0;  % extra bf
-    use_coulomb_basis = false;
+    use_coulomb_basis = true;
+    v_eps = 1e-2;
+
     if use_coulomb_basis
         nc = 1;
     end
@@ -245,10 +247,12 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     
     % Weighting parameters (diagonal weighting)
     we = 1;                                                                     
-    wf = 1*1e-6;
-    wdf = 1*1e-14;
-    wry = 1*1e-18;
-    wdry = 1*1e-2;
+    wf = 1*1e-7;  % -6
+    wdf = 1*1e-6; % -8
+%     wry = 1*1e-18;
+%     wdry = 1*1e-2;
+    wry = 1e-5; %-5
+    wdry = 1e-8; %-6
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = wf*eye(N); Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
@@ -489,73 +493,84 @@ for trial = 0:N_trial-1
         history.fupdate(jj+1,:,:) = f_update;                               % Store f_jplus1 - f_j
 
     elseif strcmp(optFFmethod, 'ILC_BF_IS')
-
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Your own feedforward update
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             % Identify active channel dynamically inside the loop execution
             active_ch = find(optFFdirections == 1, 1);
             
             % Extract CURRENT trial data for the active channel strictly as 1D vectors
-            y_active = squeeze(history.p(jj, :, active_ch))';
-            e_active = squeeze(history.e(jj, :, active_ch))'; 
+            e_y_active = squeeze(history.e(jj, :, active_ch))'; 
             r_y_active = squeeze(history.r_y(jj, :, active_ch))';
             f_active   = squeeze(history.f(jj, :, active_ch))';
             r_active   = squeeze(history.r(jj, :, active_ch))';
-
-            e_y_active = r_y_active - y_active;
             
             % Call the update function passing the specific diagonal terms of the MIMO system
-            [theta_delta] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
+            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_Coulomb(na, nb, Psi, Nref, ...
                 Sx, SPx, ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-                e_y_active, r_y_active, f_active, r_active, t, Ts, ...
-                ntheta, use_coulomb_basis);
+                e_y_active, r_y_active, f_active, r_active, t, Ts, use_coulomb_basis, v_eps);
+           
 
-            % theta update
-            theta_ch = theta_j*optFFdirections' + theta_delta;
-            theta_j(:,active_ch) = theta_ch; 
+            % Update theta for x channel
 
-
-            r_y_jplus1 = r_j;
-            if polynomial
-                % set IS terms of theta to 0
-                theta_j(1:na, active_ch) = zeros(na,1);              
+                % If Coulomb is used, theta_delta has length na + nb + 1
+                % If Coulomb is not used, theta_delta has length na + nb
+            theta_ch = theta_j(:, active_ch) + theta_delta;
+        
+            % Store updated theta
+            theta_j(:, active_ch) = theta_ch;
+        
+            % Separate theta into input-shaper and feedforward part
+        
+            theta_y_x = theta_ch(1:na);
+        
+            if use_coulomb_basis
+                % theta_ff_x contains normal FF parameters + Coulomb parameter
+                theta_ff_x = theta_ch(na+1 : na+nb+1);
+            else
+                theta_ff_x = theta_ch(na+1 : na+nb);
             end
 
-            % Seperate theta matrix into input shaper and ff in active ch
-            % direction
-            theta_y = theta_j(1:na,active_ch);
-            theta_ff = theta_j(na+1:end,active_ch);
-    
-            % Construct IS and ff controllers
-            Cy  = minreal(1 + Psi_y*theta_y);                                 % Construct input shaper
-            Cff = minreal(Psi_ff*theta_ff);                              % Construct feedforward
+            
+            % Reconstruct next shaped reference (NOT WITH COULOMB)
+            ry_jplus1 = r_j;
         
-            % C = minreal(Cfb*Cy + Cff); 
+            if polynomial || na == 0
+                % No input shaper used
+                ry_jplus1(:, active_ch) = r_active;
+        
+                % If polynomial is used, also keep the IS theta values zero
+                if na > 0
+                    theta_j(1:na, active_ch) = zeros(na,1);
+                    theta_y_x = zeros(na,1);
+                end
+        
+            else
+                % Method 1: use basis response directly
+                % This is consistent with the update function
+                ry_jplus1(:, active_ch) = r_active + Psi_y_r * theta_y_x;
+        
+                % Alternative method:
+                % Cy_x = minreal(1 + Psi_y * theta_y_x);
+                % ry_jplus1(:, active_ch) = brfus_v003(Cy_x, r_active, t, Ts);
+            end          
             
-            % input shaper update
-            r_y_jplus1_ch = brfus_v003(Cy,r_active,t,Ts);                                       % r_y = Cy * r
-            
-            % overwrite active channel shaped ref
-            r_y_jplus1(:,active_ch) = r_y_jplus1_ch;
-
-            % ff update
-            f_jplus1_ch = brfus_v003(Cff,r_active,t,Ts);                                        % f = Cff * r
-
-            % ff update on active channel
-            % f_jplus1_ch = Psi_ff_r*theta_ff; % doenst work
-            % f_jplus1_ch = Phi*theta_ch; % works
-            
-            % Reconstruct the 3-axis MIMO f_jplus1 matrix [Nref x 3]
+            % Reconstruct next feedforward
             f_jplus1 = zeros(Nref, ni);
-            f_jplus1(:, active_ch) = f_jplus1_ch; 
+        
+            % NOTE:
+            % Psi_ff_r already includes the Coulomb basis column if coulomb = true.
+            % Therefore this works for both cases:
+            
+            % no Coulomb:   size(Psi_ff_r) = Nref x nb
+            % Coulomb:      size(Psi_ff_r) = Nref x (nb+1)
+            
+            f_jplus1_x = Psi_ff_r * theta_ff_x;
+        
+            f_jplus1(:, active_ch) = f_jplus1_x;
 
+            % Update history struct        
             history.f(jj+1,:,:) = f_jplus1;                                     % Store f_jplus1
-%             history.fupdate(jj+1,:,:) = f_update;
-            history.r_y(jj+1,:,:) = r_y_jplus1;
-    end
+            history.r_y(jj+1,:,:) = ry_jplus1;
+        end
 
 
     % Update trial data plot
