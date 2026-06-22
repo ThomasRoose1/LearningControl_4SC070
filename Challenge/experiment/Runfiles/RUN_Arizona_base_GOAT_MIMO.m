@@ -200,10 +200,14 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % order of FF and IS filters
     na_x = 0;  % Order input shaper Cy
     na_phi = 0;
-    nb_x = 3;  % Order feedforward Cff
-    nb_phi = 3;
+    nb_x = 2;  % Order feedforward Cff
+    nb_phi = 2;
+
+    % stack
     na_vec = [na_x; na_phi];
     nb_vec = [nb_x; nb_phi];
+
+    % 
     n_in = 2;
     n_out = 2;
     use_coulomb_basis = false;
@@ -223,16 +227,17 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     % wdry = 1*1e-2;
     % x weights
     we_x = 1;                                                                     
-    wf_x = 1e-6;   % Lowered so the optimizer is allowed to use feedforward
-    wdf_x = 1e-14;  % Keeps the high-frequency derivatives smooth
-    wry_x = 1e-4;
-    wdry_x = 1e-4;
+    wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
+    wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
+    wry_x = 1e-15;
+    wdry_x = 1e-20;
     % phi weights
     we_phi = 1;                                                                     
-    wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
+    wf_phi = 1e-20;   % Lowered so the optimizer is allowed to use feedforward
     wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
     wry_phi = 1e-4;
     wdry_phi = 1e-4;
+
     % Construct diagonal weighting filters
     We = blkdiag(we_x*eye(Nref), we_phi*eye(Nref));   We_sq = sqrt(We);                                           % Penelizes tracking error
     Wf = blkdiag(wf_x*eye(Nref), wf_phi*eye(Nref));   Wf_sq = sqrt(Wf);                                           % Penalizes feedforward force/input
