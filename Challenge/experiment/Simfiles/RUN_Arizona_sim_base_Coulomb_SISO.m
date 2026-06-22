@@ -159,8 +159,8 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 if strcmp(optFFmethod, 'ILC_BF_IS')
     polynomial = 0;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 3;  % Order input shaper Cy
-    nb = 3;  % Order feedforward Cff
+    na = 1;  % Order input shaper Cy
+    nb = 2;  % Order feedforward Cff
     nc = 0;
     
     % Select if coulomb should be used
@@ -195,7 +195,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
 
     we = 1;                                                                     
     wf = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wdf = 1e-6;  % Keeps the high-frequency derivatives smooth
     wry = 1e-5;
     wdry = 1e-6;
 

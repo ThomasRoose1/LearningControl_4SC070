@@ -18,10 +18,10 @@ nData = numel(files);
 % LOAD DATA
 DATA = cell(nData,1);
 
-for i = 1:nData
-    tmp = load(files{i});
+for i = 1:nData %[output:group:847596d1]
+    tmp = load(files{i}); %[output:08042373]
     DATA{i} = tmp.history;
-end
+end %[output:group:847596d1]
 
 
 
@@ -85,7 +85,7 @@ end
 
 lastTrial = min(lastValid);
 
-fprintf('Correct detected last valid trial = %d\n', lastTrial); %[output:5bca2b97]
+fprintf('Correct detected last valid trial = %d\n', lastTrial);
 %[text] 
 %[text] Figure
 figure('Position',[50 80 1800 850])
@@ -186,16 +186,13 @@ fullPath = fullfile(dateFolder, outName);
 % Opslaan
 exportgraphics(gcf, fullPath, 'Resolution', 300);
 
-fprintf('Figure saved as: %s\n', fullPath); %[output:65166424]
+fprintf('Figure saved as: %s\n', fullPath);
 
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright"}
+%   data: {"layout":"onright","rightPanelPercent":22.2}
 %---
-%[output:5bca2b97]
-%   data: {"dataType":"text","outputData":{"text":"Correct detected last valid trial = 15\n","truncated":false}}
-%---
-%[output:65166424]
-%   data: {"dataType":"text","outputData":{"text":"Figure saved as: 2026-06-22\\ILC_comparison_lastTrial_15_20260622_113157.png\n","truncated":false}}
+%[output:08042373]
+%   data: {"dataType":"error","outputData":{"errorType":"runtime","text":"Error using <a href=\"matlab:matlab.lang.internal.introspective.errorDocCallback('load')\" style=\"font-weight:bold\">load<\/a>\nFirst_trail_basisfunc_na0_nb3.mat is not found in the current folder or on the MATLAB path, but exists in:\n    C:\\git\\LearningControl_4SC070\\Challenge\\experiment\\Results\\12_6\n\n<a href = \"matlab:internal.matlab.desktop.commandwindow.executeCommandForUser('cd ''C:\\git\\LearningControl_4SC070\\Challenge\\experiment\\Results\\12_6''')\">Change the MATLAB current folder<\/a> or <a href = \"matlab:internal.matlab.desktop.commandwindow.executeCommandForUser('addpath ''C:\\git\\LearningControl_4SC070\\Challenge\\experiment\\Results\\12_6''')\">add its folder to the MATLAB path<\/a>."}}
 %---
