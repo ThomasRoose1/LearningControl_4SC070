@@ -23,7 +23,7 @@ addpath(genpath('../Utility_functions'))
 addpath(genpath('../ILC_updates'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 35; % 1,...,N_trial
+N_trials = 60; % 1,...,N_trial
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -145,10 +145,10 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 if strcmp(optFFmethod, 'ILC_BF_IS')
     polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na_x = 3;  % Order input shaper Cy
+    na_x = 0;  % Order input shaper Cy
     na_phi = 0;
-    nb_x = 3;  % Order feedforward Cff
-    nb_phi = 3;
+    nb_x = 2;  % Order feedforward Cff
+    nb_phi = 2;
 
     % stack em
     na_vec = [na_x; na_phi];
@@ -171,30 +171,30 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
 
     % Weighting parameters (diagonal weighting)
 
-    % ---- works, V in x too high ---
-    % we_x = 1;                                                                     
-    % wf_x = 1e-9;   % Lowered so the optimizer is allowed to use feedforward
-    % wdf_x = 1e-8;  % Keeps the high-frequency derivatives smooth
-    % wry_x = 1e-5;
-    % wdry_x = 1e-6;
-    % % phi weights
-    % we_phi = 1;                                                                     
-    % wf_phi = 1e-19;   % Lowered so the optimizer is allowed to use feedforward
-    % wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
-    % wry_phi = 1e-4;
-    % wdry_phi = 1e-4;
-
-    we_x = 1;                                                                     
-    wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
+    we_x = 2;                                                                     
+    wf_x = 1e-10;   % Lowered so the optimizer is allowed to use feedforward
     wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
     wry_x = 1e-15;
     wdry_x = 1e-20;
     % phi weights
     we_phi = 1;                                                                     
     wf_phi = 1e-20;   % Lowered so the optimizer is allowed to use feedforward
-    wdf_phi = 1e-8;  % Keeps the high-frequency derivatives smooth
+    wdf_phi = 1e-15;  % Keeps the high-frequency derivatives smooth
     wry_phi = 1e-4;
     wdry_phi = 1e-4;
+
+    % we_x = 1;                                                                     
+    % wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
+    % wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
+    % wry_x = 1e-15;
+    % wdry_x = 1e-20;
+    % % phi weights
+    % we_phi = 0.5;                                                                     
+    % wf_phi = 1e-20;   % Lowered so the optimizer is allowed to use feedforward
+    % wdf_phi = 1e-15;  % Keeps the high-frequency derivatives smooth
+    % wry_phi = 1e-4;
+    % wdry_phi = 1e-4;
+
 
 
     % Construct diagonal weighting filters

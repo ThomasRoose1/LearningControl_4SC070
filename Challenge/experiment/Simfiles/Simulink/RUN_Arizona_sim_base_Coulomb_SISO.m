@@ -12,6 +12,7 @@ clear variables; close all; clc;
 addpath(genpath('../Controllers'))
 addpath(genpath('../Helper_functions'))
 addpath(genpath('../Models'))
+addpath(genpath('../Models_new/Models/Parametric'))
 addpath(genpath('../Pars'))
 addpath(genpath('../Plotter_functions'))
 addpath(genpath('../Reference_generators'))
@@ -157,47 +158,32 @@ PlotTrialDataContour(history,1,0,0,0,0,1,0,0); % Plots reference
 % you might want to expand the history struct with more variables
 % =========================================================================
 if strcmp(optFFmethod, 'ILC_BF_IS')
-    polynomial = 0;                                                         % Select 1 for input shaper off
+    polynomial = 1;                                                         % Select 1 for input shaper off
     % order of FF and IS filters
-    na = 1;  % Order input shaper Cy
+    na = 0;  % Order input shaper Cy
     nb = 2;  % Order feedforward Cff
-    nc = 0;
-    
-    % Select if coulomb should be used
-    coulomb = false;
-    % Define the 'include_friction' struct
-    include_friction = struct();
-    include_friction.input_shaper = false; % Turn off friction for input shaper
-    include_friction.feedforward  = false;  % Turn on friction for feedforward path
+    nc = 0;  % extra bf
 
-    alpha = 1;
-    v_eps = 1e-4; 
-    if coulomb
+
+    use_coulomb_basis = false;
+    if use_coulomb_basis
         nc = 1;
     end
-    theta_j = zeros(na+nb+nc,3);
+    ntheta = na+nb+nc;
+    theta_j = zeros(ntheta,3);
+    history.theta = NaN(N_trials, na+nb+nc,3); 
 
 
     % add na zeros in direction vector
     direction = zeros(na+nb);
 
     % Weighting parameters (diagonal weighting)
-    % we = 1;                                                                     
-    % wf = 0*1e-14;
-    % wdf = 0*1e-16;
-    % wry = 1e-4;
-    % wdry = 1*1e-2;
-    % we = 1;                                                                     
-    % wf   = 1e-9;
-    % wdf  = 1e-8;
-    % wry  = 1e-5;
-    % wdry = 1e-6;
 
-    we = 1;                                                                     
-    wf = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
-    wdf = 1e-6;  % Keeps the high-frequency derivatives smooth
-    wry = 1e-5;
-    wdry = 1e-6;
+    we = 1;                                                                      
+    wf = 1e-7;       
+    wdf = 1e-6;     
+    wry = 1e-5;     %-5
+    wdry = 1e-6;    %-6
 
     % Construct diagonal weighting filters
     We = we*eye(N); We_sq = sqrt(We);                                           % Penalizes tracking error
@@ -238,23 +224,6 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
                     
 end
 
-% Adaptive learning-gain settings
-learning_gain     = 0.4;
-learning_gain_min = 0.05;
-gain_down         = 0.5;
-
-best_e_norm    = Inf;
-best_trial     = NaN;
-best_theta_j   = theta_j;
-best_f_active  = [];
-best_ry_active = [];
-
-no_improve_count = 0;
-patience = 4;
-
-% Previous measured trial error
-prev_e_norm = Inf;
-
     %% Execute trials
 for jj = 1:N_trials
         % Display trial number.
@@ -271,9 +240,8 @@ for jj = 1:N_trials
         
         % Set reference and feedforward. Used like this in simulink, uses the
         % shaped ref
-    
-        %% Teun Code
-        % Fixed base reference and current shaped reference
+
+        % base reference and current shaped reference
         r_base_j = squeeze(history.r(jj,:,:));      % fixed, unshaped reference
         r_y_j    = squeeze(history.r_y(jj,:,:));    % shaped reference used by feedback
         f_j      = squeeze(history.f(jj,:,:));      % feedforward input
@@ -316,32 +284,31 @@ for jj = 1:N_trials
     
         if strcmp(optFFmethod, 'ILC_BF_IS')
     
+            % Identify active channel dynamically inside the loop execution
             active_ch = find(optFFdirections == 1, 1);
-            r0_active = squeeze(history.r(1,:,active_ch));
-            rj_active = squeeze(history.r(jj,:,active_ch));
             
-            fprintf('Trial %d base-reference drift: %.4e\n', ...
-                jj, norm(rj_active(:) - r0_active(:)));
-    
-            % Extract signals as column vectors
-            y_active   = squeeze(history.p(jj, :, active_ch));   y_active   = y_active(:);
-            r_y_active = squeeze(history.r_y(jj, :, active_ch)); r_y_active = r_y_active(:);
-            f_active   = squeeze(history.f(jj, :, active_ch));   f_active   = f_active(:);
-            r_active   = squeeze(history.r(jj, :, active_ch));   r_active   = r_active(:);
-    
-            % error w.r.t. shaped reference
+            % Extract CURRENT trial data for the active channel strictly as 1D vectors
+            y_active = squeeze(history.p(jj, :, active_ch))';
+            e_active = squeeze(history.e(jj, :, active_ch))'; 
+            r_y_active = squeeze(history.r_y(jj, :, active_ch))';
+            f_active   = squeeze(history.f(jj, :, active_ch))';
+            r_active   = squeeze(history.r(jj, :, active_ch))';
+
             e_y_active = r_y_active - y_active;
-    
-            [theta_delta, Phi, Psi_y_r, Psi_ff_r] = FeedforwardUpdate_ILC_BFIS_Teun( ...
-                na, nb, Psi, Nref, ...
-                S(active_ch, active_ch), PS(active_ch, active_ch), ...
+            
+            % Call the update function passing the specific diagonal terms of the MIMO system
+            [theta_delta] = FeedforwardUpdate_ILC_BFIS(na, nb, Psi, Nref, ...
+                Sx, SPx, ...
                 We_sq, Wry_sq, Wdry_sq, Wf_sq, Wdf_sq, ...
-                e_y_active, r_y_active, f_active, r_active, t, Ts);
+                e_y_active, r_y_active, f_active, r_active, t, Ts, ...
+                ntheta, use_coulomb_basis);
+
 
     
             % Parameter update
             theta_ch = theta_j(:, active_ch) + theta_delta;
             theta_j(:, active_ch) = theta_ch;
+            history.theta(jj,:,:) = theta_j;
         
             theta_y  = theta_ch(1:na);
             theta_ff = theta_ch(na+1:end);

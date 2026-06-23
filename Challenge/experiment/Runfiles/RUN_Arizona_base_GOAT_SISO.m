@@ -250,6 +250,9 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     we = 1;                                                                     
     wf = 1*1e-7;  % -6
     wdf = 1*1e-6; % -8
+        we_x = 2;                                                                     
+    wf_x = 1e-10;   % Lowered so the optimizer is allowed to use feedforward
+    wdf_x = 1e-6; 
 %     wry = 1*1e-18;
 %     wdry = 1*1e-2;
     wry = 1e-5; %-5
