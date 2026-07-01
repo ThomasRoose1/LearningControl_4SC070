@@ -1,10 +1,5 @@
-%% Description
-%RUN_Arizona_sim_base   
-% Simulation equivalent of minimum working example for working with Arizona. 
-%
-% Author: Johan Kon
-% Date:   April 2021
-%
+%% Simulation code for Arizona flatbed printer ILC SISO control
+% Based on provided code by Johan Kon
 
 %%
 clear variables; close all; clc;
@@ -25,7 +20,7 @@ addpath(genpath('../ILC_updates'))
 % addpath(genpath('../References'))
 %% Parameters and settings
 Ts = get_Arizona_pars();
-N_trials = 40; % 1,...,N_trial
+N_trials = 40;  
 Ts = 0.001; % sampling time                                                    
 optFFmethod           = 'ILC_BF_IS';  
 BadControllers        = true;
@@ -33,11 +28,6 @@ BadControllers        = true;
 optFFdirections       = [0,1,0];    
 
 %% Generate reference
-% [xref, yref, phiref, t] = reference_square(Ts);
-%[xref, yref, phiref, t] = reference_triangle(Ts);
-% [xref, yref, phiref, t] = reference_rounded_rectangle(Ts);
-% load('test_reference.mat')
-
 % cd /Users/teunwijfjes/Downloads/experiment
 load("Reference_X_slow.mat")
 
@@ -48,14 +38,7 @@ N = 5/Ts;
 [yref, xref, phiref, t] = pad_reference_to_N_zeros(yref, xref, phiref,N, Ts);
 % xref = xr ef*0;
 t = t';
-% traj_number = 1;    
-% % size_i = length(yRefs{traj_number});
-% size_i = 1;   
-% times = linspace(0,size_i/Ts,size_i)';
-% xref = zeros(size_i,1);
-% yref = yRefs{:,traj_number};
-% phiref =zeros(size_i,1);
-% t = times;
+
 
 Nref = length(xref);
 %% Load  loop system (after decoupling) and controllers
@@ -99,8 +82,8 @@ Tu = [0.5, -0.3817;
 Ty = [0.5   0.5;
       -0.3817 0.3817];
 
+% Apply decoupling
 Pdec = Ty*Pz*Tu;
-
 Pdec_sim = Pdec;
 
 % gain correction
@@ -116,6 +99,7 @@ SPphi = minreal(feedback(Pphi, Cphi_cl));
 Sy = minreal(feedback(1, Py*Cy_cl));
 Sx = minreal(feedback(1, Px*Cx_cl));
 
+% Stack controller and plants
 C_zpk = blkdiag(Cy_cl, Cx_cl, Cphi_cl);
 P_zpk = blkdiag(Py, Px, Pphi);
 
@@ -124,9 +108,7 @@ P_zpk = blkdiag(Py, Px, Pphi);
 
 Stf = tf(S); PStf = tf(PS);
 
-% [A,B,C,D] = ssdata(SP);
 % Number of states, inputs and outputs.
-% [no,ni] = size(D);
 ni = 3;
 no = 3;
 
@@ -194,6 +176,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     Wdf = wdf*eye(N); Wdf_sq = sqrt(Wdf);                                       % Penalizes change/derivative of feedforward
     Wry = wry*eye(N); Wry_sq = sqrt(Wry);                                       % Penalizes shaped reference ry
     Wdry = wdry*eye(N); Wdry_sq = sqrt(Wdry);                                   % Penalizes derivative of shaped reference 
+
     % Define the 'weights' struct
     % Frequently, these are diagonal penalty matrices (identity scaled by a scalar)
     weights = struct();
@@ -231,13 +214,7 @@ end
 for jj = 1:N_trials
         % Display trial number.
         fprintf(['Trial %',num2str(numel(num2str(N_trials-1))),'d/%d finished.\n'],jj,N_trials);
-        
-        % Check ffw
-        % Not necessary in simulation. Can be uncommented to see what's
-        % happening
-    %     fprintf('Waiting for key press.\n')
-    %     pause;
-        
+                
         % Increase trial in plot
         PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
         

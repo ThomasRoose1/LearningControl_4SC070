@@ -56,9 +56,16 @@ switch dataset
         custom_legend = {'SISO BF', 'SISO BFIS'};
     case 'exp_ALL'
         data_names = {'22_06/1_SISO_BF/SISO_na0_nb2_3', ...
-                      '22_06/2_SISO_BFIS/SISO_na2_nb2_2p2', ...
+                      '22_06/2_SISO_BFIS/SISO_na3_nb2_2p4', ...
                       '22_06/3_MIMO_BF/MIMO_nbx2_nbphi2_3p1'};
         custom_legend = {'SISO BF', 'SISO BFIS', 'MIMO BF'}; 
+    case 'exp_1'
+        data_names = {'22_06/1_SISO_BF/SISO_na0_nb2_3'};
+        custom_legend = {'SISO BF'};    
+    case 'exp_2'
+        data_names = {'22_06/1_SISO_BF/SISO_na0_nb2_3', ...
+                      '22_06/2_SISO_BFIS/SISO_na3_nb2_2p4'};
+        custom_legend = {'SISO BF', 'SISO BFIS'};    
 end
 
 num_datasets = length(data_names);
@@ -142,6 +149,8 @@ end
 
 xlabel('Trial Number', 'Interpreter', 'latex');
 ylabel('$||e_x||_2$', 'Interpreter', 'latex');
+xlim([0, 50]);
+ylim([0.005, 0.045]);
 set(gca, 'FontSize', 9, 'FontName', 'Times New Roman', 'TickLabelInterpreter', 'latex'); 
 hold off;
 
@@ -175,7 +184,10 @@ end
 
 xlabel('Trial Number', 'Interpreter', 'latex');
 ylabel('$||e_\phi||_2$', 'Interpreter', 'latex');
+xlim([0, 50]);
+ylim([2.7e-3, 3.4e-3]);
 set(gca, 'FontSize', 9, 'FontName', 'Times New Roman', 'TickLabelInterpreter', 'latex'); 
+
 
 % Create a dummy plot for the 'Converged Error' legend entry (black dashed line)
 h_dummy = plot(NaN, NaN, 'LineStyle', '--', 'Marker', 'none', 'Color', 'k', 'LineWidth', 1);

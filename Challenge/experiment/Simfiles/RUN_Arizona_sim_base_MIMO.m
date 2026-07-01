@@ -1,11 +1,5 @@
-%% Description
-%RUN_Arizona_sim_base   
-% Simulation equivalent of minimum working example for working with Arizona. 
-%
-% Author: Johan Kon
-% Date:   April 2021
-%
-
+%% Simulation code for Arizona flatbed printer ILC SISO control
+% Based on provided code by Johan Kon
 %%
 clear variables; close all; clc;
 %% Paths
@@ -33,10 +27,6 @@ optFFdirections       = [1,0];    % [x, phi]
 
 
 %% Generate reference
-% [xref, yref, phiref, t] = reference_square(Ts);
-%[xref, yref, phiref, t] = reference_triangle(Ts);
-% [xref, yref, phiref, t] = reference_rounded_rectangle(Ts);
-% load('test_reference.mat')
 cd ..
 load("References\Reference_X_slow.mat")
 % load("References\small_step_slow_2_1.mat")
@@ -166,11 +156,7 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     theta_j_x = zeros(na_x+nb_x, 1);
     theta_j_phi = zeros(na_phi+nb_phi, 1);
 
-    % add na zeros in direction vector
-    % direction = zeros(na+nb);
-
     % Weighting parameters (diagonal weighting)
-
     we_x = 2;                                                                     
     wf_x = 1e-10;   % Lowered so the optimizer is allowed to use feedforward
     wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
@@ -182,20 +168,6 @@ if strcmp(optFFmethod, 'ILC_BF_IS')
     wdf_phi = 1e-15;  % Keeps the high-frequency derivatives smooth
     wry_phi = 1e-4;
     wdry_phi = 1e-4;
-
-    % we_x = 1;                                                                     
-    % wf_x = 1e-7;   % Lowered so the optimizer is allowed to use feedforward
-    % wdf_x = 1e-6;  % Keeps the high-frequency derivatives smooth
-    % wry_x = 1e-15;
-    % wdry_x = 1e-20;
-    % % phi weights
-    % we_phi = 0.5;                                                                     
-    % wf_phi = 1e-20;   % Lowered so the optimizer is allowed to use feedforward
-    % wdf_phi = 1e-15;  % Keeps the high-frequency derivatives smooth
-    % wry_phi = 1e-4;
-    % wdry_phi = 1e-4;
-
-
 
     % Construct diagonal weighting filters
     We = blkdiag(we_x*eye(Nref), we_phi*eye(Nref));   We_sq = sqrt(We);                                           % Penelizes tracking error
@@ -254,12 +226,6 @@ end
 for jj = 1:N_trials
     % Display trial number.
     fprintf(['Trial %',num2str(numel(num2str(N_trials-1))),'d/%d finished.\n'],jj,N_trials);
-    
-    % Check ffw
-    % Not necessary in simulation. Can be uncommented to see what's
-    % happening
-%     fprintf('Waiting for key press.\n')
-%     pause;
     
     % Increase trial in plot
     PlotTrialDataContour(history,jj,0,1,0,0,0,0,0);
